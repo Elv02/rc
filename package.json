@@ -1,0 +1,27 @@
+{
+  "name": "rc",
+  "version": "1.0.0",
+  "description": "A raycasted multiplayer first person game written with Typescript!",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Elv02/rc.git"
+  },
+  "keywords": [
+    "raycast",
+    "typescript",
+    "phaser",
+    "brainstation",
+    "fps",
+    "multiplayer"
+  ],
+  "author": "Lauren 'Elv02' Hoeft",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/Elv02/rc/issues"
+  },
+  "homepage": "https://github.com/Elv02/rc#readme"
+}
