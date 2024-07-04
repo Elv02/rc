@@ -1,56 +1,82 @@
 import Phaser from 'phaser';
 import Raycaster from '../utils/Raycaster';
 
-class Player extends Phaser.Physics.Arcade.Sprite {
+class Player {
+    public sprite: Phaser.GameObjects.Graphics;
+    public viewCone: Phaser.GameObjects.Graphics;
+    private scene: Phaser.Scene;
+    private position: { x: number; y: number };
+    private speed: number;
+    private angle: number;
+    private viewDistance: number;
+    private viewAngle: number;
     private raycaster: Raycaster;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
-        super(scene, x, y, texture);
-        scene.add.existing(this);
-        scene.physics.add.existing(this);
-        this.raycaster = new Raycaster(scene);
+    constructor(scene: Phaser.Scene, x: number, y: number, level: number[][], tileSize: number) {
+        this.scene = scene;
+        this.position = { x, y };
+        this.speed = 200;
+        this.angle = 0; // Angle in degrees
+        this.viewDistance = 200; // Distance of the view cone
+        this.viewAngle = 45; // Angle of the view cone in degrees
 
-        this.setCollideWorldBounds(true);
+        // Initialize raycaster
+        this.raycaster = new Raycaster(scene, level, tileSize);
+
+        // Create graphics objects for the player and view cone
+        this.sprite = this.scene.add.graphics();
+        this.viewCone = this.scene.add.graphics();
+
+        // Draw the initial player and view cone
+        this.drawPlayer();
+        this.drawViewCone();
     }
 
-    update(cursors: Phaser.Types.Input.Keyboard.CursorKeys, layer: Phaser.Tilemaps.TilemapLayer): void {
-        if (cursors.left?.isDown) {
-            this.setVelocityX(-160);
-        } else if (cursors.right?.isDown) {
-            this.setVelocityX(160);
-        } else {
-            this.setVelocityX(0);
+    update(cursors: Phaser.Types.Input.Keyboard.CursorKeys, delta: number): void {
+        const speed = this.speed * (delta / 1000);
+
+        if (cursors.left.isDown) {
+            this.angle -= speed; // Rotate left
+        } else if (cursors.right.isDown) {
+            this.angle += speed; // Rotate right
         }
 
-        if (cursors.up?.isDown && this.body?.touching.down) { // Null check added
-            this.setVelocityY(-330);
+        if (cursors.up.isDown) {
+            this.position.x += Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
+            this.position.y += Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
+        } else if (cursors.down.isDown) {
+            this.position.x -= Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
+            this.position.y -= Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
         }
 
-        this.castVisionRays(layer);
+        this.scene.cameras.main.scrollX = this.position.x - this.scene.cameras.main.width / 2;
+        this.scene.cameras.main.scrollY = this.position.y - this.scene.cameras.main.height / 2;
+
+        this.drawPlayer();
+        this.drawViewCone();
     }
 
-    private castVisionRays(layer: Phaser.Tilemaps.TilemapLayer): void {
-        const rayLength = 300;
-        const numberOfRays = 8;
-        const angleStep = (2 * Math.PI) / numberOfRays;
+    private drawPlayer(): void {
+        this.sprite.clear();
+        this.sprite.fillStyle(0x00ff00, 1);
+        this.sprite.fillCircle(this.position.x, this.position.y, 10);
+    }
 
-        for (let i = 0; i < numberOfRays; i++) {
-            const angle = i * angleStep;
-            const ray = this.raycaster.castRay(this.x, this.y, angle, rayLength);
-            const intersections = this.raycaster.getIntersections(ray, layer);
+    private drawViewCone(): void {
+        this.viewCone.clear();
+        this.viewCone.fillStyle(0xff0000, 0.75);
+        this.viewCone.lineStyle(2, 0xFF0000, 0.75);
 
-            if (intersections.length > 0) {
-                this.drawRay(ray, intersections[0]);
+        const angleIncrement = this.viewAngle / 10; // Number of rays in the cone
+        for (let i = -this.viewAngle / 2; i < this.viewAngle / 2; i += angleIncrement) {
+            const ray = this.raycaster.castRay(this.position.x, this.position.y, Phaser.Math.DegToRad(this.angle + i), this.viewDistance);
+            const intersection = this.raycaster.getIntersections(ray);
+            if (intersection) {
+                this.viewCone.lineBetween(this.position.x, this.position.y, intersection.x, intersection.y);
             } else {
-                this.drawRay(ray, new Phaser.Geom.Point(ray.x2, ray.y2));
+                this.viewCone.lineBetween(this.position.x, this.position.y, ray.x2, ray.y2);
             }
         }
-    }
-
-    private drawRay(ray: Phaser.Geom.Line, endpoint: Phaser.Geom.Point): void {
-        const graphics = this.scene.add.graphics({ lineStyle: { width: 2, color: 0xff0000 } });
-        graphics.strokeLineShape(new Phaser.Geom.Line(ray.x1, ray.y1, endpoint.x, endpoint.y));
-        graphics.destroy();
     }
 }
 

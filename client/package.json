@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
-    "start": "webpack serve --open"  },
+    "start": "webpack serve --open"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Elv02/rc.git"
@@ -30,5 +31,9 @@
     "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.0.4"
+  },
+  "dependencies": {
+    "helmet": "^7.1.0",
+    "http-server": "^14.1.1"
   }
 }

@@ -1,7 +1,6 @@
 const gameConfig = {
-    playerSpeed: 200,
-    enemySpeed: 150,
-    gravity: 300
+    playerMoveSpeed: 200,
+    playerTurnSpeed: 75
 };
 
 export default gameConfig;
