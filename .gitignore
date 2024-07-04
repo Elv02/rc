@@ -89,11 +89,11 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
-# Comment in the public line in if your project uses Gatsby and not Next.js
+
+# Comment in the public line if your project uses Gatsby and not Next.js
 # https://nextjs.org/blog/next-9-1#public-directory-support
 # public
 
@@ -128,3 +128,26 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Dist built source
+dist/
+
+# Client specific
+client/dist/
+client/asset_server/assets/textures/tiles.png
+client/node_modules/
+client/.parcel-cache
+client/.cache
+client/.nuxt
+
+# Server specific
+server/node_modules/
+server/.parcel-cache
+server/.cache
+server/.nuxt
+
+# Additional IDE specific ignores
+# JetBrains
+.idea/
+# VS Code
+.vscode/
