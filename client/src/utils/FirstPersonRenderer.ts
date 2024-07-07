@@ -13,6 +13,9 @@ class FirstPersonRenderer {
   private playerPosition: { x: number; y: number };
   private playerAngle: number;
   private graphics: Phaser.GameObjects.Graphics;
+  private fov: number;
+  private rayAngleStep: number;
+  private numRays: number;
 
   /**
    * Constructor for the FirstPersonRenderer class.
@@ -35,6 +38,9 @@ class FirstPersonRenderer {
     this.graphics = this.scene.add.graphics();
     this.playerPosition = { x: 0, y: 0 };
     this.playerAngle = 0;
+    this.fov = Phaser.Math.DegToRad(this.viewAngle);
+    this.numRays = Math.floor(this.scene.scale.width / 4); // Further reduce number of rays
+    this.rayAngleStep = this.fov / this.numRays;
   }
 
   /**
@@ -54,49 +60,62 @@ class FirstPersonRenderer {
    */
   private render(): void {
     this.graphics.clear();
-    const fov = Phaser.Math.DegToRad(this.viewAngle);
     const screenWidth = this.scene.scale.width;
     const screenHeight = this.scene.scale.height;
-    const numRays = screenWidth;
-    const rayAngleStep = fov / numRays;
 
-    for (let i = 0; i <= numRays; i++) {
+    for (let i = 0; i <= this.numRays; i++) {
       const rayAngle =
-        Phaser.Math.DegToRad(this.playerAngle) - fov / 2 + i * rayAngleStep;
-      const ray = this.raycaster.castRay(
+        Phaser.Math.DegToRad(this.playerAngle) -
+        this.fov / 2 +
+        i * this.rayAngleStep;
+      const intersection = this.raycaster.castRay(
         this.playerPosition.x,
         this.playerPosition.y,
         rayAngle,
         this.viewDistance
       );
-      const intersection = this.raycaster.getIntersection(ray);
-      const distToIntersection = intersection
-        ? this.raycaster.getDistance(ray.getPoint(0), intersection)
-        : Number.MAX_SAFE_INTEGER;
 
-      // Correct fish-eye effect
+      if (!intersection) continue;
+
+      const distToIntersection = Phaser.Math.Distance.Between(
+        this.playerPosition.x,
+        this.playerPosition.y,
+        intersection.x,
+        intersection.y
+      );
+
+      // Correct fish-eye effect by adjusting the distance
       const correctedDistance =
         distToIntersection *
         Math.cos(rayAngle - Phaser.Math.DegToRad(this.playerAngle));
 
+      // Skip rendering if the corrected distance exceeds the view distance
       if (correctedDistance > this.viewDistance) {
         continue;
       }
 
-      let lineHeight = 0;
-      if (intersection !== null) {
-        lineHeight =
-          (this.viewDistance / correctedDistance / 10) * screenHeight;
-      }
+      // Calculate the line height based on the corrected distance
+      let lineHeight =
+        (this.viewDistance / correctedDistance) *
+        (screenHeight / this.viewDistance);
 
-      const lineX = (i / numRays) * screenWidth;
+      // Center the line height
+      const lineX = (i / this.numRays) * screenWidth;
       const lineY = (screenHeight - lineHeight) / 2;
 
-      this.graphics.lineStyle(2, this.getWallColor(intersection?.tileType), 1);
-      this.graphics.lineBetween(lineX, lineY, lineX, lineY + lineHeight);
+      // Set color based on the tile type at the intersection
+      this.graphics.lineStyle(2, this.getWallColor(intersection.tileType), 1);
+      this.graphics.beginPath();
+      this.graphics.moveTo(lineX, lineY);
+      this.graphics.lineTo(lineX, lineY + lineHeight);
+      this.graphics.strokePath();
+
+      // Log for debugging
+      console.log(
+        `Ray ${i}: Angle=${rayAngle}, Distance=${correctedDistance}, LineHeight=${lineHeight}, TileType=${intersection.tileType}`
+      );
     }
 
-    // Make the graphics follow the camera
     this.graphics.setPosition(
       this.scene.cameras.main.scrollX,
       this.scene.cameras.main.scrollY

@@ -17,6 +17,8 @@ class Player {
   private viewAngle: number;
   private raycaster: Raycaster;
   private firstPersonRenderer: FirstPersonRenderer;
+  private level: number[][];
+  private tileSize: number;
 
   /**
    * Creates an instance of Player.
@@ -39,6 +41,9 @@ class Player {
     this.angle = 0; // Angle in degrees
     this.viewDistance = 1600; // Player view cull distance
     this.viewAngle = 75; // Angle of the view cone in degrees
+
+    this.level = level;
+    this.tileSize = tileSize;
 
     // Initialize raycaster
     this.raycaster = new Raycaster(scene, level, tileSize);
@@ -72,6 +77,7 @@ class Player {
     topDownView: boolean
   ): void {
     const speed = this.speed * (delta / 1000);
+    let newPosition = { ...this.position };
 
     if (cursors.left.isDown) {
       this.angle -= speed; // Rotate left
@@ -80,11 +86,16 @@ class Player {
     }
 
     if (cursors.up.isDown) {
-      this.position.x += Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
-      this.position.y += Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
+      newPosition.x += Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
+      newPosition.y += Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
     } else if (cursors.down.isDown) {
-      this.position.x -= Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
-      this.position.y -= Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
+      newPosition.x -= Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
+      newPosition.y -= Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
+    }
+
+    // Check boundaries
+    if (this.isInsideBounds(newPosition)) {
+      this.position = newPosition;
     }
 
     // Keep player centered in the camera
@@ -133,23 +144,22 @@ class Player {
         Phaser.Math.DegToRad(this.angle + i),
         this.viewDistance
       );
-      const intersection = this.raycaster.getIntersection(ray);
-      if (intersection) {
-        this.viewCone.lineBetween(
-          this.position.x,
-          this.position.y,
-          intersection.x,
-          intersection.y
-        );
-      } else {
-        this.viewCone.lineBetween(
-          this.position.x,
-          this.position.y,
-          ray.x2,
-          ray.y2
-        );
-      }
+      if (!ray) continue;
+
+      this.viewCone.lineBetween(this.position.x, this.position.y, ray.x, ray.y);
     }
+  }
+
+  private isInsideBounds(position: { x: number; y: number }): boolean {
+    const mapWidth = this.level[0].length * this.tileSize;
+    const mapHeight = this.level.length * this.tileSize;
+
+    return (
+      position.x >= 0 &&
+      position.x <= mapWidth &&
+      position.y >= 0 &&
+      position.y <= mapHeight
+    );
   }
 }
 

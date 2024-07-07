@@ -15,6 +15,10 @@ const config: Phaser.Types.Core.GameConfig = {
             gravity: { x: 0, y: 0 },
         },
     },
+    fps: {
+        target: 60,
+        forceSetTimeOut: true
+    }
 };
 
 const game = new Phaser.Game(config);
