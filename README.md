@@ -42,7 +42,7 @@ We all love games, especially those we can enjoy with our friends. I've always b
 
 ### Scenemap
 
-The Phaser client will be broken into specific 'scenes' (analogous to pages):
+The Phaser client is broken into seperate 'scenes' (analogous to pages):
 
 - **Boot:**
   - Quick loading of assets for the load screen
@@ -55,7 +55,20 @@ The Phaser client will be broken into specific 'scenes' (analogous to pages):
 
 ### Mockups
 
-Provide visuals of your app's screens. You can use tools like Figma or pictures of hand-drawn sketches.
+The following illustrates some examples of raycasting (examples from this project will be added as they are completed).
+Non-project sources are from Lodev (https://lodev.org/cgtutor)
+
+![A simple untextured raycast scene](https://lodev.org/cgtutor/images/raycasteruntextured.gif)
+
+A simple untextured raycast scene.  Notice that the environment is made of distinct blocks which all have sharp 90 degree corners.
+
+![An example of basic texture mapping applied alongside the raycast technique](https://lodev.org/cgtutor/images/raycasttexture2.gif)
+
+Textures can be applied to surfaces to help make them destinct and to identify landmarks, features, and interactive elements
+
+![An example of sprite rendering in a raycasted scene](https://lodev.org/cgtutor/images/raycastsprites2.jpg)
+
+Textures/sprites can also be drawn as 'world objects' to add detail, and to represent key gameplay elements (interactive items, enemies, etc.)
 
 ### Data (Nice-to-Have)
 
