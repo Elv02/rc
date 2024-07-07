@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { RaycastHit } from "../types/RaycastStructs";
 
 /**
- * Utility class for working with rays
+ * Utility class for working with rays using DDA
  */
 class Raycaster {
   private readonly scene: Phaser.Scene;
@@ -22,32 +22,86 @@ class Raycaster {
   }
 
   /**
-   * Cast a ray
+   * Cast a ray using DDA
    * @param x - The x origin of the ray
    * @param y - The y origin of the ray
    * @param angle - The casting angle
    * @param length - The magnitude of the ray
-   * @returns A line segment representing the casted ray
+   * @returns A RaycastHit representing the intersection point or undefined if no intersection
    */
   castRay(
     x: number,
     y: number,
     angle: number,
     length: number
-  ): Phaser.Geom.Line {
-    const endX = x + length * Math.cos(angle);
-    const endY = y + length * Math.sin(angle);
-    return new Phaser.Geom.Line(x, y, endX, endY);
-  }
+  ): RaycastHit | undefined {
+    const mapX = Math.floor(x / this.tileSize);
+    const mapY = Math.floor(y / this.tileSize);
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
 
-  /**
-   * Get the length of a given ray
-   * @param ray - The line segment representing the ray
-   * @returns The magnitude of the ray. Returns MAX_SAFE_INTEGER if the ray is undefined.
-   */
-  getLineLength(ray: Phaser.Geom.Line | undefined): number {
-    if (ray === undefined) return Number.MAX_SAFE_INTEGER;
-    return this.getDistance(ray.getPoint(0), ray.getPoint(1));
+    const deltaDistX = Math.abs(1 / dirX);
+    const deltaDistY = Math.abs(1 / dirY);
+
+    let stepX, stepY;
+    let sideDistX, sideDistY;
+
+    if (dirX < 0) {
+      stepX = -1;
+      sideDistX = (x / this.tileSize - mapX) * deltaDistX;
+    } else {
+      stepX = 1;
+      sideDistX = (mapX + 1 - x / this.tileSize) * deltaDistX;
+    }
+    if (dirY < 0) {
+      stepY = -1;
+      sideDistY = (y / this.tileSize - mapY) * deltaDistY;
+    } else {
+      stepY = 1;
+      sideDistY = (mapY + 1 - y / this.tileSize) * deltaDistY;
+    }
+
+    let hit = false;
+    let side = 0;
+
+    let currentMapX = mapX;
+    let currentMapY = mapY;
+
+    while (!hit) {
+      if (sideDistX < sideDistY) {
+        sideDistX += deltaDistX;
+        currentMapX += stepX;
+        side = 0;
+      } else {
+        sideDistY += deltaDistY;
+        currentMapY += stepY;
+        side = 1;
+      }
+
+      if (
+        currentMapX < 0 ||
+        currentMapX >= this.level[0].length ||
+        currentMapY < 0 ||
+        currentMapY >= this.level.length
+      ) {
+        return undefined;
+      }
+
+      if (this.level[currentMapY][currentMapX] > 0) {
+        hit = true;
+      }
+    }
+
+    const perpWallDist =
+      side === 0
+        ? (currentMapX - x / this.tileSize + (1 - stepX) / 2) / dirX
+        : (currentMapY - y / this.tileSize + (1 - stepY) / 2) / dirY;
+
+    return new RaycastHit(
+      x + perpWallDist * dirX,
+      y + perpWallDist * dirY,
+      this.level[currentMapY][currentMapX]
+    );
   }
 
   /**
@@ -59,83 +113,6 @@ class Raycaster {
   getDistance(p1: Phaser.Geom.Point, p2: Phaser.Geom.Point): number {
     if (p1 === undefined || p2 === undefined) return Number.MAX_SAFE_INTEGER;
     return Phaser.Math.Distance.BetweenPoints(p1, p2);
-  }
-
-  /**
-   * Get the shortest line from a point to an array of points
-   * @param origin - The origin point
-   * @param points - The array of points
-   * @returns The shortest line or undefined if no points are provided
-   */
-  getShortestLineFromPointToPoints(
-    origin: Phaser.Geom.Point,
-    points: Phaser.Geom.Point[]
-  ): Phaser.Geom.Line | undefined {
-    let closestDistance: number = Number.MAX_SAFE_INTEGER;
-    let closestIntersection: Phaser.Geom.Point | undefined = undefined;
-    if (points.length > 0) {
-      for (const p of points) {
-        const distance = this.getDistance(origin, p);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestIntersection = p;
-        }
-      }
-      return new Phaser.Geom.Line(
-        origin.x,
-        origin.y,
-        closestIntersection?.x,
-        closestIntersection?.y
-      );
-    } else {
-      return undefined;
-    }
-  }
-
-  /**
-   * Get the intersection point of a ray with the level's tiles
-   * @param ray - The line segment representing the ray
-   * @returns The closest intersection point or undefined if no intersection
-   */
-  getIntersection(ray: Phaser.Geom.Line): RaycastHit | undefined {
-    let closestIntersection: RaycastHit | undefined = undefined;
-    let closestDistance = this.getLineLength(ray);
-
-    for (let y: number = 0; y < this.level.length; y++) {
-      for (let x: number = 0; x < this.level[y].length; x++) {
-        const tileType = this.level[y][x];
-        if (tileType !== 0) {
-          // Assuming 0 represents empty space
-          const tileRect = new Phaser.Geom.Rectangle(
-            x * this.tileSize,
-            y * this.tileSize,
-            this.tileSize,
-            this.tileSize
-          );
-          const points = Phaser.Geom.Intersects.GetLineToRectangle(
-            ray,
-            tileRect
-          );
-          const shortLine = this.getShortestLineFromPointToPoints(
-            ray.getPoint(0),
-            points
-          );
-          const shortLen = this.getLineLength(shortLine);
-          if (shortLen < closestDistance) {
-            closestDistance = shortLen;
-            const intersectionPoint = shortLine?.getPoint(1);
-            if (intersectionPoint) {
-              closestIntersection = new RaycastHit(
-                intersectionPoint.x,
-                intersectionPoint.y,
-                tileType
-              );
-            }
-          }
-        }
-      }
-    }
-    return closestIntersection;
   }
 }
 

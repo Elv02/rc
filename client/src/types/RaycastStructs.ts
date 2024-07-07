@@ -1,10 +1,24 @@
 import Phaser from 'phaser';
 
-export class RaycastHit extends Phaser.Geom.Point {
+/**
+ * Special type of 2D Point containing info on the target location
+ */
+export class RaycastHit {
+    x: number;
+    y: number;
     tileType: number;
-
+  
     constructor(x: number, y: number, tileType: number) {
-        super(x, y);
-        this.tileType = tileType;
+      this.x = x;
+      this.y = y;
+      this.tileType = tileType;
     }
-}
+  
+    setTo(x: number, y: number, tileType: number): this {
+      this.x = x;
+      this.y = y;
+      this.tileType = tileType;
+      return this;
+    }
+  }
+  
