@@ -1,44 +1,35 @@
-import Phaser from "phaser";
-import { RaycastHit } from "../types/RaycastStructs";
+import { Point, Vector, distance } from "../types/Geometry";
+import { RaycastHit, Raycast } from "../types/RaycastStructs";
 
 /**
- * Utility class for working with rays using DDA
+ * Utility class for performing raycasting using the DDA algorithm.
  */
 class Raycaster {
-  private readonly scene: Phaser.Scene;
-  private readonly tileSize: number;
+  public readonly tileSize: number;
   private readonly level: number[][];
 
   /**
-   * Create a new instance of the raycast utility
-   * @param scene - The scene the raycaster lives in
-   * @param level - The level array the raycaster will use to check collisions against
-   * @param tileSize - The size of the tiles per level
+   * Creates an instance of the Raycaster utility.
+   * @param level - The level array representing the map.
+   * @param tileSize - The size of each tile in the level.
    */
-  constructor(scene: Phaser.Scene, level: number[][], tileSize: number) {
-    this.scene = scene;
+  constructor(level: number[][], tileSize: number) {
     this.level = level;
     this.tileSize = tileSize;
   }
 
   /**
-   * Cast a ray using DDA
-   * @param x - The x origin of the ray
-   * @param y - The y origin of the ray
-   * @param angle - The casting angle
-   * @param length - The magnitude of the ray
-   * @returns A RaycastHit representing the intersection point or undefined if no intersection
+   * Casts a single ray using the DDA algorithm.
+   * @param origin - The origin point of the ray.
+   * @param direction - The direction vector of the ray.
+   * @param length - The maximum length of the ray.
+   * @returns A Raycast object representing the ray and possible hit.
    */
-  castRay(
-    x: number,
-    y: number,
-    angle: number,
-    length: number
-  ): RaycastHit | undefined {
-    const mapX = Math.floor(x / this.tileSize);
-    const mapY = Math.floor(y / this.tileSize);
-    const dirX = Math.cos(angle);
-    const dirY = Math.sin(angle);
+  castRay(origin: Point, direction: Vector, length: number): Raycast {
+    const mapX = Math.floor(origin.x / this.tileSize);
+    const mapY = Math.floor(origin.y / this.tileSize);
+    const dirX = direction.x;
+    const dirY = direction.y;
 
     const deltaDistX = Math.abs(1 / dirX);
     const deltaDistY = Math.abs(1 / dirY);
@@ -48,17 +39,17 @@ class Raycaster {
 
     if (dirX < 0) {
       stepX = -1;
-      sideDistX = (x / this.tileSize - mapX) * deltaDistX;
+      sideDistX = (origin.x / this.tileSize - mapX) * deltaDistX;
     } else {
       stepX = 1;
-      sideDistX = (mapX + 1 - x / this.tileSize) * deltaDistX;
+      sideDistX = (mapX + 1 - origin.x / this.tileSize) * deltaDistX;
     }
     if (dirY < 0) {
       stepY = -1;
-      sideDistY = (y / this.tileSize - mapY) * deltaDistY;
+      sideDistY = (origin.y / this.tileSize - mapY) * deltaDistY;
     } else {
       stepY = 1;
-      sideDistY = (mapY + 1 - y / this.tileSize) * deltaDistY;
+      sideDistY = (mapY + 1 - origin.y / this.tileSize) * deltaDistY;
     }
 
     let hit = false;
@@ -84,7 +75,7 @@ class Raycaster {
         currentMapY < 0 ||
         currentMapY >= this.level.length
       ) {
-        return undefined;
+        return new Raycast(origin, direction, length);
       }
 
       if (this.level[currentMapY][currentMapX] > 0) {
@@ -94,25 +85,57 @@ class Raycaster {
 
     const perpWallDist =
       side === 0
-        ? (currentMapX - x / this.tileSize + (1 - stepX) / 2) / dirX
-        : (currentMapY - y / this.tileSize + (1 - stepY) / 2) / dirY;
+        ? (currentMapX - origin.x / this.tileSize + (1 - stepX) / 2) / dirX
+        : (currentMapY - origin.y / this.tileSize + (1 - stepY) / 2) / dirY;
 
-    return new RaycastHit(
-      x + perpWallDist * dirX,
-      y + perpWallDist * dirY,
-      this.level[currentMapY][currentMapX]
+    const hitPoint = new Point(
+      origin.x + perpWallDist * dirX,
+      origin.y + perpWallDist * dirY
+    );
+
+    const angle = Math.atan2(direction.y, direction.x);
+
+    return new Raycast(
+      origin,
+      direction,
+      perpWallDist,
+      angle,
+      new RaycastHit(
+        hitPoint,
+        perpWallDist,
+        new Vector(side === 0 ? -stepX : 0, side === 1 ? -stepY : 0),
+        angle,
+        this.level[currentMapY][currentMapX]
+      )
     );
   }
 
   /**
-   * Get the distance between two points
-   * @param p1 - The first point
-   * @param p2 - The second point
-   * @returns The distance between the two points. Returns MAX_SAFE_INTEGER if any point is undefined.
+   * Casts multiple rays in a given direction.
+   * @param origin - The origin point of the rays.
+   * @param angle - The starting angle of the rays.
+   * @param viewDistance - The maximum distance the rays should travel.
+   * @param fov - The field of view in radians.
+   * @param numRays - The number of rays to cast.
+   * @returns An array of Raycast objects representing the intersection points.
    */
-  getDistance(p1: Phaser.Geom.Point, p2: Phaser.Geom.Point): number {
-    if (p1 === undefined || p2 === undefined) return Number.MAX_SAFE_INTEGER;
-    return Phaser.Math.Distance.BetweenPoints(p1, p2);
+  castRays(
+    origin: Point,
+    angle: number,
+    viewDistance: number,
+    fov: number,
+    numRays: number
+  ): Raycast[] {
+    const hits: Raycast[] = [];
+    const angleStep = fov / numRays;
+
+    for (let i = 0; i < numRays; i++) {
+      const rayAngle = angle - fov / 2 + i * angleStep;
+      const direction = new Vector(Math.cos(rayAngle), Math.sin(rayAngle));
+      const ray = this.castRay(origin, direction, viewDistance);
+      hits.push(ray);
+    }
+    return hits;
   }
 }
 

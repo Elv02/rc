@@ -1,29 +1,26 @@
 import Phaser from "phaser";
 import Raycaster from "../utils/Raycaster";
-import { RaycastHit } from "../types/RaycastStructs";
+import { Point, Vector } from "../types/Geometry";
 
 /**
- * FirstPersonRenderer handles the rendering of a first-person view using raycasting.
+ * A class responsible for rendering the first-person view in the game.
+ * Utilizes raycasting to determine visible walls and draws them on a canvas.
  */
 class FirstPersonRenderer {
   private scene: Phaser.Scene;
   private raycaster: Raycaster;
   private viewDistance: number;
   private viewAngle: number;
-  private playerPosition: { x: number; y: number };
-  private playerAngle: number;
-  private graphics: Phaser.GameObjects.Graphics;
-  private fov: number;
-  private rayAngleStep: number;
-  private numRays: number;
+  private pixelCanvas: HTMLCanvasElement;
+  private pixelContext: CanvasRenderingContext2D;
+  private phaserTexture: Phaser.Textures.CanvasTexture;
 
   /**
-   * Constructor for the FirstPersonRenderer class.
-   *
-   * @param scene - The Phaser scene where the rendering will occur.
-   * @param raycaster - An instance of the Raycaster utility for casting rays.
-   * @param viewDistance - The maximum distance that the player can see.
-   * @param viewAngle - The field of view, measured in degrees.
+   * Constructs a FirstPersonRenderer instance.
+   * @param scene - The Phaser scene to which this renderer belongs.
+   * @param raycaster - The Raycaster instance used for raycasting.
+   * @param viewDistance - The maximum distance the player can see.
+   * @param viewAngle - The field of view angle in degrees.
    */
   constructor(
     scene: Phaser.Scene,
@@ -35,116 +32,110 @@ class FirstPersonRenderer {
     this.raycaster = raycaster;
     this.viewDistance = viewDistance;
     this.viewAngle = viewAngle;
-    this.graphics = this.scene.add.graphics();
-    this.playerPosition = { x: 0, y: 0 };
-    this.playerAngle = 0;
-    this.fov = Phaser.Math.DegToRad(this.viewAngle);
-    this.numRays = Math.floor(this.scene.scale.width / 4); // Further reduce number of rays
-    this.rayAngleStep = this.fov / this.numRays;
-  }
 
-  /**
-   * Updates the player's position and angle, and triggers rendering.
-   *
-   * @param playerPosition - The current position of the player.
-   * @param playerAngle - The current angle of the player.
-   */
-  update(playerPosition: { x: number; y: number }, playerAngle: number): void {
-    this.playerPosition = playerPosition;
-    this.playerAngle = playerAngle;
-    this.render();
-  }
+    // Create an off-screen canvas for pixel manipulation
+    this.pixelCanvas = document.createElement("canvas");
+    this.pixelCanvas.width = scene.scale.width;
+    this.pixelCanvas.height = scene.scale.height;
+    this.pixelContext = this.pixelCanvas.getContext(
+      "2d"
+    ) as CanvasRenderingContext2D;
 
-  /**
-   * Renders the scene based on the player's position and angle using raycasting.
-   */
-  private render(): void {
-    this.graphics.clear();
-    const screenWidth = this.scene.scale.width;
-    const screenHeight = this.scene.scale.height;
-
-    for (let i = 0; i <= this.numRays; i++) {
-      const rayAngle =
-        Phaser.Math.DegToRad(this.playerAngle) -
-        this.fov / 2 +
-        i * this.rayAngleStep;
-      const intersection = this.raycaster.castRay(
-        this.playerPosition.x,
-        this.playerPosition.y,
-        rayAngle,
-        this.viewDistance
-      );
-
-      if (!intersection) continue;
-
-      const distToIntersection = Phaser.Math.Distance.Between(
-        this.playerPosition.x,
-        this.playerPosition.y,
-        intersection.x,
-        intersection.y
-      );
-
-      // Correct fish-eye effect by adjusting the distance
-      const correctedDistance =
-        distToIntersection *
-        Math.cos(rayAngle - Phaser.Math.DegToRad(this.playerAngle));
-
-      // Skip rendering if the corrected distance exceeds the view distance
-      if (correctedDistance > this.viewDistance) {
-        continue;
-      }
-
-      // Calculate the line height based on the corrected distance
-      let lineHeight =
-        (this.viewDistance / correctedDistance) *
-        (screenHeight / this.viewDistance);
-
-      // Center the line height
-      const lineX = (i / this.numRays) * screenWidth;
-      const lineY = (screenHeight - lineHeight) / 2;
-
-      // Set color based on the tile type at the intersection
-      this.graphics.lineStyle(2, this.getWallColor(intersection.tileType), 1);
-      this.graphics.beginPath();
-      this.graphics.moveTo(lineX, lineY);
-      this.graphics.lineTo(lineX, lineY + lineHeight);
-      this.graphics.strokePath();
-
-      // Log for debugging
-      console.log(
-        `Ray ${i}: Angle=${rayAngle}, Distance=${correctedDistance}, LineHeight=${lineHeight}, TileType=${intersection.tileType}`
-      );
-    }
-
-    this.graphics.setPosition(
-      this.scene.cameras.main.scrollX,
-      this.scene.cameras.main.scrollY
+    // Create a Phaser texture from the canvas
+    this.phaserTexture = scene.textures.createCanvas(
+      "pixelCanvas",
+      this.pixelCanvas.width,
+      this.pixelCanvas.height
+    )!;
+    scene.add.image(
+      scene.scale.width / 2,
+      scene.scale.height / 2,
+      "pixelCanvas"
     );
   }
 
   /**
-   * Returns the color for a wall based on its type.
-   *
-   * @param tileType - The type of the tile hit by the ray.
-   * @returns The color associated with the tile type.
+   * Updates the first-person view rendering based on the player's position and angle.
+   * @param playerPosition - The current position of the player.
+   * @param playerAngle - The current viewing angle of the player in radians.
    */
-  private getWallColor(tileType: number | undefined): number {
-    switch (tileType) {
-      case 1:
-        return 0xff0000; // red
-      case 2:
-        return 0x00ff00; // green
-      case 3:
-        return 0x0000ff; // blue
-      case 4:
-        return 0xffff00; // yellow
-      case 5:
-        return 0xff00ff; // purple
-      case 6:
-        return 0xffa500; // orange
-      default:
-        return 0x000000; // black
+  update(playerPosition: Point, playerAngle: number): void {
+    const screenWidth = this.pixelCanvas.width;
+    const screenHeight = this.pixelCanvas.height;
+    const fieldOfView = this.viewAngle * (Math.PI / 180);
+    const halfFieldOfView = fieldOfView / 2;
+    const stepAngle = fieldOfView / screenWidth;
+
+    let currentAngle = playerAngle - halfFieldOfView;
+
+    // Clear the canvas with a solid color (e.g., sky blue for the ceiling and gray for the floor)
+    this.pixelContext.fillStyle = "#87CEEB"; // Sky blue
+    this.pixelContext.fillRect(0, 0, screenWidth, screenHeight / 2);
+    this.pixelContext.fillStyle = "#808080"; // Gray
+    this.pixelContext.fillRect(
+      0,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight / 2
+    );
+
+    for (let x = 0; x < screenWidth; x++) {
+      const rayDirection = new Vector(
+        Math.cos(currentAngle),
+        Math.sin(currentAngle)
+      );
+      const ray = this.raycaster.castRay(
+        playerPosition,
+        rayDirection,
+        this.viewDistance
+      );
+
+      if (ray.hit) {
+        const textureIndex = ray.hit.collider;
+        const frame = this.scene.textures.getFrame("tiles", textureIndex);
+        if (frame) {
+          const perpendicularDistance =
+            ray.distance * Math.cos(playerAngle - currentAngle); // Correct fish-eye effect
+          const wallHeight = Math.floor(screenHeight / perpendicularDistance); // Calculate wall height
+
+          // Calculate the exact X coordinate of the texture
+          let wallX;
+          if (ray.hit.normal.x !== 0) {
+            wallX =
+              playerPosition.y / this.raycaster.tileSize +
+              perpendicularDistance * rayDirection.y;
+          } else {
+            wallX =
+              playerPosition.x / this.raycaster.tileSize +
+              perpendicularDistance * rayDirection.x;
+          }
+          wallX -= Math.floor(wallX);
+
+          // X coordinate on the texture
+          let textureX = Math.floor(wallX * frame.width);
+          if (ray.hit.normal.x === 1 || ray.hit.normal.y === -1) {
+            textureX = frame.width - textureX - 1;
+          }
+
+          this.pixelContext.drawImage(
+            frame.source.image as CanvasImageSource,
+            frame.cutX + textureX,
+            frame.cutY,
+            1,
+            frame.height,
+            x,
+            (screenHeight - wallHeight) / 2,
+            1,
+            wallHeight
+          );
+        }
+      }
+
+      currentAngle += stepAngle;
     }
+
+    this.phaserTexture.context.drawImage(this.pixelCanvas, 0, 0);
+    this.phaserTexture.refresh();
   }
 }
 
