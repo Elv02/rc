@@ -1,35 +1,45 @@
-const path = require('path');
-const express = require('express');
-const helmet = require('helmet');
+const path = require("path");
+const express = require("express");
+const helmet = require("helmet");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = {
-  mode: 'development',
-  entry: path.join(__dirname, 'src', 'index.ts'),
+  mode: "development",
+  context: path.resolve(__dirname, "src"),
+  entry: "./index.ts", // Entry path relative to context
   output: {
-    filename: 'bundle.js',
-    path: path.join(__dirname, 'dist'),
+    filename: "bundle.js",
+    path: path.resolve(__dirname, "dist"),
+    clean: true,
   },
-  devtool: 'inline-source-map', // or 'cheap-module-source-map' for better performance
+  devtool: "inline-source-map",
   devServer: {
     static: {
-      directory: path.join(__dirname, 'dist'),
+      directory: path.resolve(__dirname, "dist"),
     },
     compress: true,
     port: 9000,
-    historyApiFallback: true, // Ensures the index.html is served for all routes
+    historyApiFallback: true,
     proxy: [
       {
-        context: ['/assets'],
-        target: 'http://localhost:8081',
+        context: ["/game-ws"],
+        target: 'ws://127.0.0.1:64209',
+        ws: true,
+      },
+      {
+        context: ["/assets"],
+        target: "http://localhost:8081",
         changeOrigin: true,
       },
     ],
     headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self';",
+      "Content-Security-Policy":
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:64209;",
     },
     setupMiddlewares: (middlewares, devServer) => {
       if (!devServer) {
-        throw new Error('webpack-dev-server is not defined');
+        throw new Error("webpack-dev-server is not defined");
       }
 
       devServer.app.use(
@@ -41,7 +51,7 @@ module.exports = {
               scriptSrc: ["'self'", "'unsafe-inline'"],
               styleSrc: ["'self'", "'unsafe-inline'"],
               imgSrc: ["'self'", "data:", "blob:"],
-              connectSrc: ["'self'"],
+              connectSrc: ["'self'", "ws://127.0.0.1:64209"],
             },
           },
         })
@@ -54,12 +64,30 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: "ts-loader",
         exclude: /node_modules/,
+      },
+      {
+        test: /\.css$/,
+        use: [MiniCssExtractPlugin.loader, "css-loader"],
+      },
+      {
+        test: /\.html$/,
+        use: "html-loader",
       },
     ],
   },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, "src", "index.html"), // Correct template path
+      filename: "index.html",
+      inject: "body",
+    }),
+    new MiniCssExtractPlugin({
+      filename: "styles.css",
+    }),
+  ],
   resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: [".tsx", ".ts", ".js"],
   },
 };
