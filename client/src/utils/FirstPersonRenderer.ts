@@ -13,7 +13,7 @@ class FirstPersonRenderer {
   private viewAngle: number;
   private pixelCanvas: HTMLCanvasElement;
   private pixelContext: CanvasRenderingContext2D;
-  private phaserTexture: Phaser.Textures.CanvasTexture;
+  private phaserTexture: Phaser.Textures.CanvasTexture | null = null;
 
   /**
    * Constructs a FirstPersonRenderer instance.
@@ -41,16 +41,38 @@ class FirstPersonRenderer {
       "2d"
     ) as CanvasRenderingContext2D;
 
-    // Create a Phaser texture from the canvas
-    this.phaserTexture = scene.textures.createCanvas(
-      "pixelCanvas",
-      this.pixelCanvas.width,
-      this.pixelCanvas.height
-    )!;
-    scene.add.image(
-      scene.scale.width / 2,
-      scene.scale.height / 2,
-      "pixelCanvas"
+    this.createOrUpdateTexture();
+  }
+
+  /**
+   * Create or update the Phaser texture from the canvas
+   */
+  private createOrUpdateTexture() {
+    const textureKey = "pixelCanvas";
+
+    if (this.scene.textures.exists(textureKey)) {
+      this.phaserTexture = this.scene.textures.get(
+        textureKey
+      ) as Phaser.Textures.CanvasTexture;
+    } else {
+      this.phaserTexture = this.scene.textures.createCanvas(
+        textureKey,
+        this.pixelCanvas.width,
+        this.pixelCanvas.height
+      );
+    }
+
+    if (!this.phaserTexture) {
+      this.phaserTexture = this.scene.textures.addCanvas(
+        textureKey,
+        this.pixelCanvas
+      )!;
+    }
+
+    this.scene.add.image(
+      this.scene.scale.width / 2,
+      this.scene.scale.height / 2,
+      textureKey
     );
   }
 
@@ -134,8 +156,20 @@ class FirstPersonRenderer {
       currentAngle += stepAngle;
     }
 
-    this.phaserTexture.context.drawImage(this.pixelCanvas, 0, 0);
-    this.phaserTexture.refresh();
+    if (this.phaserTexture) {
+      this.phaserTexture.context.drawImage(this.pixelCanvas, 0, 0);
+      this.phaserTexture.refresh();
+    }
+  }
+
+  /**
+   * Cleanup resources which are no longer needed
+   */
+  destroy() {
+    if (this.phaserTexture) {
+      this.phaserTexture.destroy();
+    }
+    this.phaserTexture = null;
   }
 }
 

@@ -2,8 +2,8 @@ import { WebSocketServer } from "ws";
 import { nanoid } from "nanoid";
 
 interface MessageObject extends Object {
-  type: string,
-  data: Object
+  type: string;
+  data: Object;
 }
 
 interface Client extends WebSocket {
@@ -65,6 +65,7 @@ export class GameSocketServer {
 
     switch (msgObj.type) {
       case "join":
+        console.log(`Player ${msgObj.data} has connected.`);
         break;
       case "leave":
         // Keeping this here in case we need to do work before the client is dc'd.
@@ -84,9 +85,7 @@ export class GameSocketServer {
     // TODO: Broadcast new state back to remaining clients?
   }
 
-  handleJoin(ws: Client, data: Object){
-    
-  }
+  handleJoin(ws: Client, data: Object) {}
 
   removeClient(ws: Client) {
     this.clients.splice(this.clients.indexOf(ws), 1);
