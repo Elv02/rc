@@ -6,8 +6,8 @@ import GameScene from './scenes/GameScene';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
-    width: 640,
-    height: 360,
+    width: 1280,
+    height: 720,
     scene: [BootScene, PreloadScene, MainMenuScene, GameScene],
     physics: {
         default: 'arcade',

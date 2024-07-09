@@ -52,7 +52,7 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number): void {
-    this.player.update(this.cursors, delta, this.topDownView);
+    this.player.update(this.cursors, delta);
   }
 
   private createLevel(): void {
