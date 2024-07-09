@@ -1,6 +1,7 @@
-import Phaser from "phaser";
-import Raycaster from "../utils/Raycaster";
-import FirstPersonRenderer from "../utils/FirstPersonRenderer";
+import Phaser from 'phaser';
+import Raycaster from '../utils/Raycaster';
+import FirstPersonRenderer from '../utils/FirstPersonRenderer';
+import { Point, Vector } from '../types/Geometry';
 
 /**
  * Represents a player in the game.
@@ -10,8 +11,9 @@ class Player {
   public sprite: Phaser.GameObjects.Graphics;
   public viewCone: Phaser.GameObjects.Graphics;
   private scene: Phaser.Scene;
-  private position: { x: number; y: number };
+  private position: Point;
   private speed: number;
+  private rotationSpeed: number;
   private angle: number;
   private viewDistance: number;
   private viewAngle: number;
@@ -20,14 +22,6 @@ class Player {
   private level: number[][];
   private tileSize: number;
 
-  /**
-   * Creates an instance of Player.
-   * @param scene - The scene this player belongs to.
-   * @param x - The initial x position of the player.
-   * @param y - The initial y position of the player.
-   * @param level - The level data represented as a 2D array.
-   * @param tileSize - The 'unit' size of each tile in the level (1 unit = 1 pixel).
-   */
   constructor(
     scene: Phaser.Scene,
     x: number,
@@ -36,9 +30,10 @@ class Player {
     tileSize: number
   ) {
     this.scene = scene;
-    this.position = { x, y };
+    this.position = new Point(x, y);
     this.speed = 200;
-    this.angle = 0; // Angle in degrees
+    this.rotationSpeed = 5;
+    this.angle = 0; // Angle in radians
     this.viewDistance = 1600; // Player view cull distance
     this.viewAngle = 75; // Angle of the view cone in degrees
 
@@ -46,7 +41,7 @@ class Player {
     this.tileSize = tileSize;
 
     // Initialize raycaster
-    this.raycaster = new Raycaster(scene, level, tileSize);
+    this.raycaster = new Raycaster(level, tileSize);
 
     // Initialize first person renderer
     this.firstPersonRenderer = new FirstPersonRenderer(
@@ -65,44 +60,33 @@ class Player {
     this.drawViewCone();
   }
 
-  /**
-   * Updates the player's position and view based on input and delta time.
-   * @param cursors - The cursor keys for player input.
-   * @param delta - The elapsed time since the last frame update.
-   * @param topDownView - Whether the player view is top-down or first-person.
-   */
   update(
     cursors: Phaser.Types.Input.Keyboard.CursorKeys,
     delta: number,
     topDownView: boolean
   ): void {
-    const speed = this.speed * (delta / 1000);
-    let newPosition = { ...this.position };
+    const movementSpeed = this.speed * (delta / 1000);
+    const rotationSpeed = this.rotationSpeed * (delta / 1000);
+    let newPosition = new Point(this.position.x, this.position.y);
 
     if (cursors.left.isDown) {
-      this.angle -= speed; // Rotate left
+      this.angle -= rotationSpeed; // Rotate left
     } else if (cursors.right.isDown) {
-      this.angle += speed; // Rotate right
+      this.angle += rotationSpeed; // Rotate right
     }
 
     if (cursors.up.isDown) {
-      newPosition.x += Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
-      newPosition.y += Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
+      newPosition.x += Math.cos(this.angle) * movementSpeed;
+      newPosition.y += Math.sin(this.angle) * movementSpeed;
     } else if (cursors.down.isDown) {
-      newPosition.x -= Math.cos(Phaser.Math.DegToRad(this.angle)) * speed;
-      newPosition.y -= Math.sin(Phaser.Math.DegToRad(this.angle)) * speed;
+      newPosition.x -= Math.cos(this.angle) * movementSpeed;
+      newPosition.y -= Math.sin(this.angle) * movementSpeed;
     }
 
     // Check boundaries
     if (this.isInsideBounds(newPosition)) {
       this.position = newPosition;
     }
-
-    // Keep player centered in the camera
-    this.scene.cameras.main.scrollX =
-      this.position.x - this.scene.cameras.main.width / 2;
-    this.scene.cameras.main.scrollY =
-      this.position.y - this.scene.cameras.main.height / 2;
 
     this.sprite.setVisible(topDownView);
     this.viewCone.setVisible(topDownView);
@@ -114,20 +98,12 @@ class Player {
     this.firstPersonRenderer.update(this.position, this.angle);
   }
 
-  /**
-   * Draws the player's representation in the game world.
-   * Currently only renders a basic circle for the top down view.
-   */
   private drawPlayer(): void {
     this.sprite.clear();
     this.sprite.fillStyle(0x00ff00, 1);
     this.sprite.fillCircle(this.position.x, this.position.y, 10);
   }
 
-  /**
-   * Draw the view cones (primarily for debug)
-   * @param topDownView - Indicate whether we are drawing a basic limited cone (fewer lines) in top-down.
-   */
   private drawViewCone(topDownView: boolean = false): void {
     this.viewCone.clear();
     this.viewCone.fillStyle(0xff0000, 0.5);
@@ -138,19 +114,18 @@ class Player {
       i < this.viewAngle / 2;
       i += angleIncrement
     ) {
-      const ray = this.raycaster.castRay(
-        this.position.x,
-        this.position.y,
-        Phaser.Math.DegToRad(this.angle + i),
-        this.viewDistance
+      const direction = new Vector(
+        Math.cos(this.angle + Phaser.Math.DegToRad(i)),
+        Math.sin(this.angle + Phaser.Math.DegToRad(i))
       );
-      if (!ray) continue;
+      const ray = this.raycaster.castRay(this.position, direction, this.viewDistance);
+      if (!ray.hit) continue;
 
-      this.viewCone.lineBetween(this.position.x, this.position.y, ray.x, ray.y);
+      this.viewCone.lineBetween(this.position.x, this.position.y, ray.hit.point.x, ray.hit.point.y);
     }
   }
 
-  private isInsideBounds(position: { x: number; y: number }): boolean {
+  private isInsideBounds(position: Point): boolean {
     const mapWidth = this.level[0].length * this.tileSize;
     const mapHeight = this.level.length * this.tileSize;
 

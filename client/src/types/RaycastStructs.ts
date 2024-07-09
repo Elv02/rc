@@ -1,24 +1,33 @@
-import Phaser from 'phaser';
+import { Point, Vector } from "./Geometry";
 
 /**
- * Special type of 2D Point containing info on the target location
+ * Represents a hit from a raycast.
  */
 export class RaycastHit {
-    x: number;
-    y: number;
-    tileType: number;
-  
-    constructor(x: number, y: number, tileType: number) {
-      this.x = x;
-      this.y = y;
-      this.tileType = tileType;
-    }
-  
-    setTo(x: number, y: number, tileType: number): this {
-      this.x = x;
-      this.y = y;
-      this.tileType = tileType;
-      return this;
-    }
+  constructor(
+    public point: Point,
+    public distance: number,
+    public normal: Vector,
+    public angle: number,
+    public collider: any // Replace 'any' with the appropriate type for colliders in your game
+  ) {}
+}
+
+/**
+ * Represents a raycast.
+ */
+export class Raycast {
+  constructor(
+    public origin: Point,
+    public direction: Vector,
+    public distance: number,
+    public angle?: number,
+    public hit: RaycastHit | null = null
+  ) {
+    // Calculate angle if not provided
+    this.angle =
+      angle !== undefined
+        ? angle
+        : Math.atan2(direction.y - origin.y, direction.x - origin.x);
   }
-  
+}
