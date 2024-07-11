@@ -25,6 +25,7 @@
   "homepage": "https://github.com/Elv02/rc#readme",
   "dependencies": {
     "config-ini-parser": "^1.6.1",
+    "express": "^4.19.2",
     "nanoid": "^5.0.7",
     "node": "^22.3.0",
     "ts-node": "^10.9.2",
