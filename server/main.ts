@@ -4,7 +4,7 @@ import express from "express";
 import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GameSocketServer } from "./src/gameSocketServer";
+import { GameSocketServer } from "./src/GameSocketServer";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
