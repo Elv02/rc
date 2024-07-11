@@ -9,6 +9,9 @@ import { GameSocketServer } from "./src/gameSocketServer";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Main function to start the server and initialize configurations.
+ */
 function myMain() {
   console.log("Launching RC Server under the following configuration:");
 
@@ -20,22 +23,6 @@ function myMain() {
     }
     parser.parse(data);
     console.log(parser.stringify());
-    
-    const IP = parser.get("Connections", "IP");
-    const PORT = parser.get("Connections", "PORT");
-    const ASSETS_IP = parser.get("Connections", "ASSETS_IP");
-    const ASSETS_PORT = parser.get("Connections", "ASSETS_PORT");
-
-    // Create an Express app
-    const app = express();
-    app.use(express.static(path.join(__dirname, 'asset_server')));
-
-    // Create an HTTP server
-    const httpServer = http.createServer(app);
-    httpServer.listen(ASSETS_PORT, ASSETS_IP, () => {
-      console.log(`HTTP server running at http://${ASSETS_IP}:${ASSETS_PORT}`);
-    });
-
     const IP = parser.get("Connections", "IP");
     const PORT = parser.get("Connections", "PORT");
     const ASSETS_IP = parser.get("Connections", "ASSETS_IP");
