@@ -27,6 +27,7 @@ class FirstPersonRenderer {
     this.viewDistance = viewDistance;
     this.viewAngle = viewAngle;
 
+    // Create a canvas to draw the first-person view
     this.pixelCanvas = document.createElement("canvas");
     this.pixelCanvas.width = scene.scale.width;
     this.pixelCanvas.height = scene.scale.height;
@@ -37,6 +38,9 @@ class FirstPersonRenderer {
     this.createOrUpdateTexture();
   }
 
+  /**
+   * Creates or updates the Phaser texture used for rendering.
+   */
   private createOrUpdateTexture() {
     const textureKey = "pixelCanvas";
 
@@ -66,16 +70,22 @@ class FirstPersonRenderer {
     );
   }
 
+  /**
+   * Updates the first-person renderer.
+   * @param playerPosition - The current position of the player.
+   * @param playerAngle - The current angle of the player.
+   */
   update(playerPosition: Point, playerAngle: number): void {
     const screenWidth = this.pixelCanvas.width;
     const screenHeight = this.pixelCanvas.height;
     const fieldOfView = this.viewAngle * (Math.PI / 180);
     const halfFieldOfView = fieldOfView / 2;
     const stepAngle = fieldOfView / screenWidth;
+    const epsilon = 0.0001; // Small value to handle precision issues
 
     let currentAngle = playerAngle - halfFieldOfView;
 
-    // Clear the canvas with a solid color (e.g., sky blue for the ceiling and gray for the floor)
+    // Clear the canvas with a solid color (sky blue for the ceiling and gray for the floor)
     this.pixelContext.fillStyle = "#87CEEB"; // Sky blue
     this.pixelContext.fillRect(0, 0, screenWidth, screenHeight / 2);
     this.pixelContext.fillStyle = "#808080"; // Gray
@@ -86,6 +96,7 @@ class FirstPersonRenderer {
       screenHeight / 2
     );
 
+    // Cast rays and draw walls
     for (let x = 0; x < screenWidth; x++) {
       const rayDirection = new Vector(
         Math.cos(currentAngle),
@@ -105,20 +116,22 @@ class FirstPersonRenderer {
             ray.distance * Math.cos(playerAngle - currentAngle); // Correct fish-eye effect
           const wallHeight = screenHeight / perpendicularDistance; // Calculate wall height
 
-          const clampedWallHeight = Math.min(wallHeight, screenHeight);
-
           // Calculate the exact X coordinate of the texture
           let wallX;
           if (ray.hit.normal.x !== 0) {
-            wallX = playerPosition.y / this.raycaster.tileSize + perpendicularDistance * rayDirection.y;
+            wallX =
+              playerPosition.y / this.raycaster.tileSize +
+              perpendicularDistance * rayDirection.y;
           } else {
-            wallX = playerPosition.x / this.raycaster.tileSize + perpendicularDistance * rayDirection.x;
+            wallX =
+              playerPosition.x / this.raycaster.tileSize +
+              perpendicularDistance * rayDirection.x;
           }
-          wallX -= Math.floor(wallX);
+          wallX -= Math.floor(wallX + epsilon);
           wallX = Math.abs(wallX);
 
           // X coordinate on the texture
-          let textureX = wallX * frame.width;
+          let textureX = Math.floor(wallX * frame.width);
           if (ray.hit.normal.x === 1 || ray.hit.normal.y === -1) {
             textureX = frame.width - textureX - 1;
           }
@@ -127,13 +140,13 @@ class FirstPersonRenderer {
           this.pixelContext.drawImage(
             frame.source.image as CanvasImageSource,
             frame.cutX + textureX, // Source X
-            frame.cutY,            // Source Y
-            1,                     // Source Width
-            frame.height,          // Source Height
-            x,                     // Destination X
-            (screenHeight - clampedWallHeight) / 2, // Destination Y
-            1,                     // Destination Width
-            clampedWallHeight      // Destination Height
+            frame.cutY, // Source Y
+            1, // Source Width
+            frame.height, // Source Height
+            x, // Destination X
+            (screenHeight - wallHeight) / 2,
+            1, // Destination Width
+            wallHeight
           );
         }
       }
@@ -141,7 +154,13 @@ class FirstPersonRenderer {
       currentAngle += stepAngle;
     }
 
-    this.renderCollectibles(playerPosition, playerAngle, screenWidth, screenHeight);
+    // Render collectibles and players
+    this.renderCollectibles(
+      playerPosition,
+      playerAngle,
+      screenWidth,
+      screenHeight
+    );
     this.renderPlayers(playerPosition, playerAngle, screenWidth, screenHeight);
 
     if (this.phaserTexture) {
@@ -150,6 +169,15 @@ class FirstPersonRenderer {
     }
   }
 
+  /**
+   * Determines if an object is in view.
+   * @param objectPosition - The position of the object.
+   * @param playerPosition - The position of the player.
+   * @param playerAngle - The angle of the player.
+   * @param screenWidth - The width of the screen.
+   * @param screenHeight - The height of the screen.
+   * @returns An object containing whether the object is in view, its screen X position, and its sprite height.
+   */
   private isInView(
     objectPosition: Point,
     playerPosition: Point,
@@ -176,7 +204,7 @@ class FirstPersonRenderer {
     }
 
     const angleToPlayer = Math.atan2(dy, dx);
-    let angleDifference = playerAngle - angleToPlayer;
+    let angleDifference = angleToPlayer - playerAngle;
 
     if (angleDifference > Math.PI) {
       angleDifference -= 2 * Math.PI;
@@ -187,17 +215,37 @@ class FirstPersonRenderer {
     const fieldOfView = this.viewAngle * (Math.PI / 180);
     const halfFieldOfView = fieldOfView / 2;
 
-    if (Math.abs(angleDifference) < halfFieldOfView && distanceInWorldUnits < this.viewDistance) {
-      const screenX = screenWidth / 2 - (angleDifference / fieldOfView) * screenWidth;
-      const spriteHeight = screenHeight / (distanceInWorldUnits / 10);
+    if (
+      Math.abs(angleDifference) < halfFieldOfView &&
+      distanceInWorldUnits < this.viewDistance
+    ) {
+      const screenX =
+        screenWidth / 2 + (angleDifference / fieldOfView) * screenWidth;
+      const maxSpriteHeight = screenHeight / 3; // Max height 1/3 of screen height
 
-      const clampedHeight = Math.max(spriteHeight, 30);
+      // Correct scaling calculation
+      const minDistance = 200; // Minimum distance at which scaling starts
+      const spriteHeight =
+        distanceInWorldUnits < minDistance
+          ? maxSpriteHeight * (1 - distanceInWorldUnits / minDistance)
+          : 30; // Minimum size when distance is greater than minDistance
 
-      return { inView: true, screenX, spriteHeight: clampedHeight };
+      return {
+        inView: true,
+        screenX,
+        spriteHeight: Math.max(spriteHeight, 30),
+      };
     }
     return { inView: false, screenX: 0, spriteHeight: 0 };
   }
 
+  /**
+   * Renders the collectibles in the scene.
+   * @param playerPosition - The current position of the player.
+   * @param playerAngle - The current angle of the player.
+   * @param screenWidth - The width of the screen.
+   * @param screenHeight - The height of the screen.
+   */
   private renderCollectibles(
     playerPosition: Point,
     playerAngle: number,
@@ -205,34 +253,73 @@ class FirstPersonRenderer {
     screenHeight: number
   ): void {
     const collectibles = (this.scene as GameScene).getCollectibles();
-    collectibles.forEach((collectible: { x: number; y: number; type: number }) => {
-      const sprite = this.scene.textures.getFrame("collectibles", collectible.type);
-      if (sprite) {
-        const { inView, screenX, spriteHeight } = this.isInView(
-          new Point(collectible.x, collectible.y),
-          playerPosition,
-          playerAngle,
-          screenWidth,
-          screenHeight
+    collectibles.forEach(
+      (collectible: { x: number; y: number; type: number }) => {
+        const sprite = this.scene.textures.getFrame(
+          "collectibles",
+          collectible.type
         );
-
-        if (inView) {
-          this.pixelContext.drawImage(
-            sprite.source.image as CanvasImageSource,
-            sprite.cutX,
-            sprite.cutY,
-            sprite.width,
-            sprite.height,
-            screenX - sprite.width / 2,
-            (screenHeight - spriteHeight) / 2,
-            sprite.width,
-            spriteHeight
+        if (sprite) {
+          const { inView, screenX, spriteHeight } = this.isInView(
+            new Point(collectible.x, collectible.y),
+            playerPosition,
+            playerAngle,
+            screenWidth,
+            screenHeight
           );
+
+          if (inView) {
+            const maxScaleHeight = screenHeight / 3; // Max height 1/3 of screen height
+            const scaleHeight = Math.min(spriteHeight, maxScaleHeight); // Scale height based on distance
+            const aspectRatio = sprite.width / sprite.height;
+            const scaleWidth = scaleHeight * aspectRatio;
+
+            // Calculate vertical position based on distance
+            const distanceInWorldUnits = Math.sqrt(
+              Math.pow(collectible.x - playerPosition.x, 2) +
+                Math.pow(collectible.y - playerPosition.y, 2)
+            );
+
+            // Adjust the vertical position to simulate the object sitting on the ground
+            const groundLevel = screenHeight * 0.75; // Base ground level near the bottom of the screen
+            const heightAdjustment =
+              (distanceInWorldUnits / this.viewDistance) * (screenHeight / 2);
+            const verticalOffset = groundLevel - heightAdjustment;
+
+            // Draw the scaled image
+            this.pixelContext.save(); // Save the context state
+            this.pixelContext.translate(screenX, verticalOffset); // Move to the position
+            this.pixelContext.scale(
+              scaleWidth / sprite.width,
+              scaleHeight / sprite.height
+            ); // Scale the context
+
+            this.pixelContext.drawImage(
+              sprite.source.image as CanvasImageSource,
+              sprite.cutX,
+              sprite.cutY,
+              sprite.width,
+              sprite.height,
+              -sprite.width / 2, // Center the sprite
+              0,
+              sprite.width,
+              sprite.height
+            );
+
+            this.pixelContext.restore(); // Restore the context state
+          }
         }
       }
-    });
+    );
   }
 
+  /**
+   * Renders the players in the scene.
+   * @param playerPosition - The current position of the player.
+   * @param playerAngle - The current angle of the player.
+   * @param screenWidth - The width of the screen.
+   * @param screenHeight - The height of the screen.
+   */
   private renderPlayers(
     playerPosition: Point,
     playerAngle: number,
@@ -241,7 +328,7 @@ class FirstPersonRenderer {
   ): void {
     const players = (this.scene as GameScene).getPlayers();
     players.forEach((player: { x: number; y: number; name: string }) => {
-      const sprite = this.scene.textures.getFrame("playerSpriteKey", 0); // Assuming a single frame sprite for player
+      const sprite = this.scene.textures.getFrame("playerSprite", 0);
       if (sprite) {
         const { inView, screenX, spriteHeight } = this.isInView(
           new Point(player.x, player.y),
@@ -268,6 +355,9 @@ class FirstPersonRenderer {
     });
   }
 
+  /**
+   * Cleans up resources used by the renderer.
+   */
   destroy() {
     if (this.phaserTexture) {
       this.phaserTexture.destroy();

@@ -58,7 +58,7 @@ class GameScene extends Phaser.Scene {
     });
 
     this.input.keyboard?.on("keydown-ESC", () => {
-      this.scene.start("MainMenuScene");
+      this.leaveGame();
     });
   }
 
@@ -239,6 +239,38 @@ class GameScene extends Phaser.Scene {
    */
   getPlayers(): { x: number; y: number; name: string }[] {
     return this.players;
+  }
+
+  /**
+   * Leaves the game properly by disconnecting the player and closing the WebSocket connection.
+   */
+  leaveGame(): void {
+    if (this.player) {
+      // Notify server about player leaving
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(
+          JSON.stringify({ type: "leave", data: this.playerId })
+        );
+      }
+      this.player.destroy();
+    }
+
+    // Clear the player list
+    this.otherPlayers = {};
+
+    // Close WebSocket connection
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+
+    // Clear level and other game data
+    this.level = [];
+    this.collectibles = [];
+    this.players = [];
+
+    // Transition to main menu
+    this.scene.start("MainMenuScene");
   }
 
   /**

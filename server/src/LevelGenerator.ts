@@ -171,7 +171,10 @@ export class LevelGenerator {
         x = Math.floor(Math.random() * this.width);
         y = Math.floor(Math.random() * this.height);
       } while (level[y][x] !== 0);
-      spawnPoints.push({ x: x * this.tileSize, y: y * this.tileSize });
+      spawnPoints.push({
+        x: x * this.tileSize + this.tileSize / 2,
+        y: y * this.tileSize + this.tileSize / 2,
+      });
     }
 
     // Generate item pickups
@@ -189,8 +192,8 @@ export class LevelGenerator {
         )
       );
       pickups.push({
-        x: x * this.tileSize,
-        y: y * this.tileSize,
+        x: x * this.tileSize + this.tileSize / 2,
+        y: y * this.tileSize + this.tileSize / 2,
         type: Math.floor(Math.random() * 5),
       });
     }
