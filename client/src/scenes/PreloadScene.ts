@@ -22,6 +22,14 @@ class PreloadScene extends Phaser.Scene {
       frameWidth: 128,
       frameHeight: 128,
     });
+    this.load.spritesheet(
+      "collectibles",
+      "assets/spritesheets/collectibles.png",
+      {
+        frameWidth: 64,
+        frameHeight: 64,
+      }
+    );
     this.load.image("playerTexture", "assets/players/player.png");
   }
 

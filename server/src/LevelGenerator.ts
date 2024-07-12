@@ -3,8 +3,9 @@
  */
 export interface LevelData {
   walls: number[][];
-  pickups: { x: number; y: number }[];
+  pickups: { x: number; y: number; type: number }[];
   spawnPoints: { x: number; y: number }[];
+  players: { x: number; y: number; name: string }[];
 }
 
 /**
@@ -46,6 +47,7 @@ export class LevelGenerator {
     );
     const pickups: { x: number; y: number }[] = [];
     const spawnPoints: { x: number; y: number }[] = [];
+    const players: { x: number; y: number; name: string }[] = [];
 
     /**
      * Carves out a room in the level.
@@ -186,10 +188,14 @@ export class LevelGenerator {
             pickup.x === x * this.tileSize && pickup.y === y * this.tileSize
         )
       );
-      pickups.push({ x: x * this.tileSize, y: y * this.tileSize });
+      pickups.push({
+        x: x * this.tileSize,
+        y: y * this.tileSize,
+        type: Math.floor(Math.random() * 5),
+      });
     }
 
-    return { walls: level, pickups, spawnPoints };
+    return { walls: level, pickups, spawnPoints, players };
   }
 
   /**
@@ -197,7 +203,9 @@ export class LevelGenerator {
    * @returns A random wall texture index.
    */
   randomWallTexture(): number {
-    const wallTextures = [2, 3, 11, 12, 20, 21, 29, 30, 38, 39, 47, 56, 65, 73, 74, 82, 83, 91, 92];
+    const wallTextures = [
+      2, 3, 11, 12, 20, 21, 29, 30, 38, 39, 47, 56, 65, 73, 74, 82, 83,
+    ];
     return wallTextures[Math.floor(Math.random() * wallTextures.length)];
   }
 }

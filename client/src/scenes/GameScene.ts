@@ -3,8 +3,9 @@ import Player from "../objects/Player";
 
 interface LevelData {
   walls: number[][];
-  pickups: { x: number; y: number }[];
+  pickups: { x: number; y: number; type: number }[];
   spawnPoints: { x: number; y: number }[];
+  players: { x: number; y: number; name: string }[];
 }
 
 /**
@@ -17,8 +18,10 @@ class GameScene extends Phaser.Scene {
   private readonly tileSize: number;
   private topDownView: boolean;
   private socket: WebSocket | null = null;
-  private playerId!: string; // Use definite assignment assertion operator
+  private playerId!: string;
   private otherPlayers: { [key: string]: Player } = {};
+  private collectibles: { x: number; y: number; type: number }[] = [];
+  private players: { x: number; y: number; name: string }[] = [];
 
   constructor() {
     super({ key: "GameScene" });
@@ -54,7 +57,6 @@ class GameScene extends Phaser.Scene {
       this.sendActionMessage();
     });
 
-    // Go back to the main menu
     this.input.keyboard?.on("keydown-ESC", () => {
       this.scene.start("MainMenuScene");
     });
@@ -86,8 +88,14 @@ class GameScene extends Phaser.Scene {
           case "level":
             this.handleLevelData(message.data);
             break;
+          case "spawn":
+            this.initializePlayer(message.data);
+            break;
           case "players":
             this.updatePlayers(message.data);
+            break;
+          case "collectibles":
+            this.setCollectibles(message.data);
             break;
           default:
             console.warn("Unknown message type:", message.type);
@@ -112,17 +120,32 @@ class GameScene extends Phaser.Scene {
   handleLevelData(data: LevelData): void {
     this.level = data.walls;
 
-    // Create the player after level data is received
+    let players = data.players || [];
+
+    // Create other players from level data
+    players.forEach((playerData) => {
+      if (playerData.name !== this.playerId) {
+        this.otherPlayers[playerData.name] = new Player(
+          this,
+          playerData.x,
+          playerData.y,
+          this.level,
+          this.tileSize
+        );
+      }
+    });
+
+    // Set collectibles for the renderer
+    this.setCollectibles(data.pickups);
+  }
+
+  /**
+   * Initializes the player when spawn point is received.
+   * @param data - The spawn point data.
+   */
+  initializePlayer(data: { x: number; y: number }): void {
     if (!this.player) {
-      const spawnPoint =
-        data.spawnPoints.length > 0 ? data.spawnPoints[0] : { x: 100, y: 100 };
-      this.player = new Player(
-        this,
-        spawnPoint.x,
-        spawnPoint.y,
-        this.level,
-        this.tileSize
-      );
+      this.player = new Player(this, data.x, data.y, this.level, this.tileSize);
       console.log("Player initialized:", this.player); // Debugging info
     }
   }
@@ -131,19 +154,15 @@ class GameScene extends Phaser.Scene {
    * Sends an action message to the server.
    */
   sendActionMessage(): void {
-    if (this.socket) {
-      if (this.socket.readyState === WebSocket.OPEN) {
-        this.socket.send(
-          JSON.stringify({ type: "action", data: "Hello from GameScene!" })
-        );
-      } else {
-        console.warn(
-          "WebSocket is not open. Current state:",
-          this.socket.readyState
-        );
-      }
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(
+        JSON.stringify({ type: "action", data: "Hello from GameScene!" })
+      );
     } else {
-      console.warn("Socket is not accessible!");
+      console.warn(
+        "WebSocket is not open. Current state:",
+        this.socket?.readyState
+      );
     }
   }
 
@@ -186,6 +205,40 @@ class GameScene extends Phaser.Scene {
         }
       }
     });
+  }
+
+  /**
+   * Updates the current state of collectibles in the level.
+   * @param collectibles - Array containing collectible positions and types.
+   */
+  setCollectibles(
+    collectibles: { x: number; y: number; type: number }[]
+  ): void {
+    this.collectibles = collectibles;
+  }
+
+  /**
+   * Get the remaining collectibles in the game.
+   * @returns An array of collectible positions and their corresponding type.
+   */
+  getCollectibles(): { x: number; y: number; type: number }[] {
+    return this.collectibles;
+  }
+
+  /**
+   * Sets the initial player data when received.
+   * @param players - The array of players with their positions and names.
+   */
+  setPlayers(players: { x: number; y: number; name: string }[]): void {
+    this.players = players;
+  }
+
+  /**
+   * Get active players in this game.
+   * @returns An array of player positions and their names.
+   */
+  getPlayers(): { x: number; y: number; name: string }[] {
+    return this.players;
   }
 
   /**

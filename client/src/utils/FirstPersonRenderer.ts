@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import Raycaster from "../utils/Raycaster";
+import GameScene from "../scenes/GameScene";
 import { Point, Vector } from "../types/Geometry";
 
 /**
@@ -156,10 +157,168 @@ class FirstPersonRenderer {
       currentAngle += stepAngle;
     }
 
+    // Render collectibles
+    this.renderCollectibles(
+      playerPosition,
+      playerAngle,
+      screenWidth,
+      screenHeight
+    );
+
+    // Render other players
+    this.renderPlayers(playerPosition, playerAngle, screenWidth, screenHeight);
+
     if (this.phaserTexture) {
       this.phaserTexture.context.drawImage(this.pixelCanvas, 0, 0);
       this.phaserTexture.refresh();
     }
+  }
+
+  /**
+   * Check if an object (player/item) is within a given view angle.
+   * @param objectPosition - The x,y position of the object.
+   * @param playerPosition - The position of the player whose view is being checked.
+   * @param playerAngle - The players viewing angle.
+   * @param screenWidth - The width of the view
+   * @param screenHeight - The height of the view
+   * @returns Whether the object is in view, and at what x screen coordinate and height it should be drawn at if it does.
+   */
+  private isInView(
+    objectPosition: Point,
+    playerPosition: Point,
+    playerAngle: number,
+    screenWidth: number,
+    screenHeight: number
+  ): { inView: boolean; screenX: number; spriteHeight: number } {
+    const dx = objectPosition.x - playerPosition.x;
+    const dy = objectPosition.y - playerPosition.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Perform a raycast to check for walls between player and object
+    const direction = new Vector(dx, dy).normalize();
+    const ray = this.raycaster.castRay(playerPosition, direction, distance);
+
+    if (ray.hit) {
+      // If the ray hits a wall before reaching the object, it's not in view
+      return { inView: false, screenX: 0, spriteHeight: 0 };
+    }
+
+    const angleToPlayer = Math.atan2(dy, dx);
+    let angleDifference = playerAngle - angleToPlayer;
+
+    // Normalize the angle difference to the range [-Math.PI, Math.PI]
+    if (angleDifference > Math.PI) {
+      angleDifference -= 2 * Math.PI;
+    } else if (angleDifference < -Math.PI) {
+      angleDifference += 2 * Math.PI;
+    }
+
+    const fieldOfView = this.viewAngle * (Math.PI / 180);
+    const halfFieldOfView = fieldOfView / 2;
+
+    if (
+      Math.abs(angleDifference) < halfFieldOfView &&
+      distance < this.viewDistance
+    ) {
+      const screenX =
+        screenWidth / 2 - (angleDifference / fieldOfView) * screenWidth;
+      const spriteHeight = Math.floor(screenHeight / (distance / 10)); // Adjust scaling factor as needed
+
+      // Clamp spriteHeight to a minimum value to ensure visibility
+      const clampedHeight = Math.max(spriteHeight, 30); // Adjust 30 as needed
+
+      console.log(
+        `Item at ${JSON.stringify(
+          objectPosition
+        )} is in view for player at ${JSON.stringify(
+          playerPosition
+        )}. screenX: ${screenX}, spriteHeight: ${clampedHeight}`
+      );
+
+      return { inView: true, screenX, spriteHeight: clampedHeight };
+    }
+    return { inView: false, screenX: 0, spriteHeight: 0 };
+  }
+
+  /**
+   * Function to render collectibles
+   */
+  private renderCollectibles(
+    playerPosition: Point,
+    playerAngle: number,
+    screenWidth: number,
+    screenHeight: number
+  ): void {
+    const collectibles = (this.scene as GameScene).getCollectibles();
+    collectibles.forEach(
+      (collectible: { x: number; y: number; type: number }) => {
+        const sprite = this.scene.textures.getFrame(
+          "collectibles",
+          collectible.type
+        );
+        if (sprite) {
+          const { inView, screenX, spriteHeight } = this.isInView(
+            new Point(collectible.x, collectible.y),
+            playerPosition,
+            playerAngle,
+            screenWidth,
+            screenHeight
+          );
+
+          if (inView) {
+            this.pixelContext.drawImage(
+              sprite.source.image as CanvasImageSource,
+              sprite.cutX,
+              sprite.cutY,
+              sprite.width,
+              sprite.height,
+              screenX - sprite.width / 2,
+              (screenHeight - spriteHeight) / 2,
+              sprite.width,
+              spriteHeight
+            );
+          }
+        }
+      }
+    );
+  }
+
+  /**
+   *  Function to render players
+   */
+  private renderPlayers(
+    playerPosition: Point,
+    playerAngle: number,
+    screenWidth: number,
+    screenHeight: number
+  ): void {
+    const players = (this.scene as GameScene).getPlayers();
+    players.forEach((player: { x: number; y: number; name: string }) => {
+      const sprite = this.scene.textures.getFrame("playerSpriteKey", 0); // Assuming a single frame sprite for player
+      if (sprite) {
+        const { inView, screenX, spriteHeight } = this.isInView(
+          new Point(player.x, player.y),
+          playerPosition,
+          playerAngle,
+          screenWidth,
+          screenHeight
+        );
+
+        if (inView) {
+          this.pixelContext.drawImage(
+            sprite.source.image as CanvasImageSource,
+            sprite.cutX,
+            sprite.cutY,
+            sprite.width,
+            sprite.height,
+            screenX - sprite.width / 2,
+            (screenHeight - spriteHeight) / 2,
+            sprite.width,
+            spriteHeight
+          );
+        }
+      }
+    });
   }
 
   /**
