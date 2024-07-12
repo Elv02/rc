@@ -22,10 +22,10 @@ class Raycaster {
    * Casts a single ray using the DDA algorithm.
    * @param origin - The origin point of the ray.
    * @param direction - The direction vector of the ray.
-   * @param length - The maximum length of the ray.
+   * @param maxDistance - The maximum distance the ray should travel.
    * @returns A Raycast object representing the ray and possible hit.
    */
-  castRay(origin: Point, direction: Vector, length: number): Raycast {
+  castRay(origin: Point, direction: Vector, maxDistance: number): Raycast {
     const mapX = Math.floor(origin.x / this.tileSize);
     const mapY = Math.floor(origin.y / this.tileSize);
     const dirX = direction.x;
@@ -69,13 +69,21 @@ class Raycaster {
         side = 1;
       }
 
+      const traveledDistance = side === 0
+        ? (currentMapX - mapX + (1 - stepX) / 2) / Math.abs(dirX)
+        : (currentMapY - mapY + (1 - stepY) / 2) / Math.abs(dirY);
+
+      if (traveledDistance > maxDistance) {
+        return new Raycast(origin, direction, maxDistance);
+      }
+
       if (
         currentMapX < 0 ||
         currentMapX >= this.level[0].length ||
         currentMapY < 0 ||
         currentMapY >= this.level.length
       ) {
-        return new Raycast(origin, direction, length);
+        return new Raycast(origin, direction, traveledDistance);
       }
 
       if (this.level[currentMapY][currentMapX] > 0) {
@@ -98,14 +106,14 @@ class Raycaster {
     return new Raycast(
       origin,
       direction,
-      perpWallDist,
+      Math.min(perpWallDist, maxDistance),
       angle,
       new RaycastHit(
         hitPoint,
-        perpWallDist,
+        Math.min(perpWallDist, maxDistance),
         new Vector(side === 0 ? -stepX : 0, side === 1 ? -stepY : 0),
         angle,
-        this.level[currentMapY][currentMapX]
+        hit ? this.level[currentMapY][currentMapX] : -1
       )
     );
   }
