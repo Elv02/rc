@@ -42,7 +42,7 @@ class Player {
     this.speed = 250;
     this.rotationSpeed = 5; // Rotation speed
     this.angle = 0; // Angle in radians
-    this.viewDistance = 1600; // Player view cull distance
+    this.viewDistance = 10000; // Player view cull distance
     this.viewAngle = 60; // Angle of the view cone in degrees
     this.collisionOffset = 25; // Offset to keep the player away from walls
 

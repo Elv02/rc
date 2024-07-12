@@ -54,6 +54,7 @@ export class GameSocketServer {
       // Generate a new level if this is the first client
       if (this.clients.length === 1) {
         this.currentLevel = this.levelGenerator.generateLevel();
+        this.spawnPointPool = [...this.currentLevel.spawnPoints];
       }
 
       // Send player ID to the client
@@ -89,7 +90,18 @@ export class GameSocketServer {
 
     switch (msgObj.type) {
       case "join":
-        console.log(`Player ${msgObj.data} has connected.`);
+        console.log(`Receiving join message: ${JSON.stringify(msgObj)}`);
+        ws.name = msgObj.data.name;
+        const spawnPoint = this.assignSpawnPoint();
+        ws.position = spawnPoint;
+        if (this.currentLevel) {
+          if (!this.currentLevel.players) {
+            this.currentLevel.players = [];
+          }
+          this.currentLevel.players.push({ ...spawnPoint, name: ws.name });
+        }
+        ws.send(JSON.stringify({ type: "spawn", data: spawnPoint }));
+        console.log(`Player ${ws.name} has connected.`);
         break;
       case "leave":
         // TODO: Handle player leaving
@@ -110,6 +122,17 @@ export class GameSocketServer {
   }
 
   /**
+   * Query the spawn pool for an available point.
+   * @returns The next available spawn point.
+   */
+  assignSpawnPoint(): { x: number; y: number } {
+    if (this.spawnPointPool.length > 0) {
+      return this.spawnPointPool.pop()!;
+    }
+    return { x: 0, y: 0 };
+  }
+
+  /**
    * Removes a client from the server and handles cleanup if no clients are connected.
    * @param ws - The client WebSocket to remove.
    */
@@ -117,6 +140,11 @@ export class GameSocketServer {
     this.clients.splice(this.clients.indexOf(ws), 1);
     if (this.clients.length === 0) {
       this.currentLevel = null;
+      this.spawnPointPool = [];
+    } else if (this.currentLevel) {
+      this.currentLevel.players = this.currentLevel.players.filter(
+        (player) => player.name !== ws.name
+      );
     }
   }
 

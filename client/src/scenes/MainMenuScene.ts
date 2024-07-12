@@ -39,16 +39,18 @@ class MainMenuScene extends Phaser.Scene {
         alert("Please enter a valid IP address and port.");
       }
 
-      if (!displayName){
+      if (!displayName) {
         alert("Please enter a display name");
       }
 
-      console.log(`Connecting to server at ${ipAddress}:${port}`);
+      console.log(
+        `${displayName} is connecting to server at ${ipAddress}:${port}`
+      );
       this.createWebSocketSession(ipAddress, port, displayName);
       this.menuContainer!.style.display = "none";
 
       // Start game scene
-      this.scene.start("GameScene", {socket: this.socket});
+      this.scene.start("GameScene", { socket: this.socket });
     });
   }
 
@@ -101,14 +103,18 @@ class MainMenuScene extends Phaser.Scene {
     this.connectButton.style.marginBottom = "10px";
   }
 
-  createWebSocketSession(ipAddress: string, port: string, displayName: string): void {
+  createWebSocketSession(
+    ipAddress: string,
+    port: string,
+    displayName: string
+  ): void {
     const url = `ws://${ipAddress}:${port}/game-ws`;
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
       console.log("WebSocket connection established.");
       this.socket!.send(
-        JSON.stringify({ type: "join", data: displayName })
+        JSON.stringify({ type: "join", data: { name: displayName } })
       );
       this.menuContainer!.style.display = "none"; // Hide the menu after connecting
     };
