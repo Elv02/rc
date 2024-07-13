@@ -4,6 +4,7 @@
   "description": "Backend server for Raycast game",
   "main": "main.ts",
   "scripts": {
+    "start": "npx tsx main.ts",
     "dev": "npx tsx main.ts --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -35,6 +36,6 @@
     "bufferutil": "^4.0.8"
   },
   "devDependencies": {
-    "@types/node": "^20.14.2"
+    "@types/node": "^20.14.10"
   }
 }

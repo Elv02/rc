@@ -4,7 +4,9 @@
   "description": "A raycasted multiplayer first person game written with Typescript!",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install": "npm i && cd ./client && npm install && cd .. && cd ./server && npm install",
+    "start": "concurrently \"npm start --prefix client\" \"npm start --prefix server\"",
+    "doc": "npx typedoc ./client/src/index.ts ./server/main.ts --out ./docs"
   },
   "repository": {
     "type": "git",
@@ -23,5 +25,10 @@
   "bugs": {
     "url": "https://github.com/Elv02/rc/issues"
   },
-  "homepage": "https://github.com/Elv02/rc#readme"
+  "homepage": "https://github.com/Elv02/rc#readme",
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "concurrently": "^8.2.2",
+    "typedoc": "^0.26.4"
+  }
 }

@@ -15,17 +15,21 @@ interface MessageObject {
  */
 interface Client extends WebSocket {
   id: string;
+  on(event: string, listener: (data: any) => void): this;
+  name?: string;
+  position?: { x: number; y: number };
 }
 
 /**
  * GameSocketServer handles WebSocket communication and manages game state.
  */
 export class GameSocketServer {
-  #wss: WebSocketServer;
-  clients: Client[] = [];
-  chatLog: string[] = [];
-  currentLevel: LevelData | null = null;
-  levelGenerator: LevelGenerator;
+  private wss: WebSocketServer;
+  private clients: Client[] = [];
+  private chatLog: string[] = [];
+  private currentLevel: LevelData | null = null;
+  private levelGenerator: LevelGenerator;
+  private spawnPointPool: { x: number; y: number }[] = [];
 
   /**
    * Creates an instance of GameSocketServer.
@@ -33,7 +37,7 @@ export class GameSocketServer {
    * @param callback - Optional callback function to be called after server starts.
    */
   constructor({ host, port }, callback = null) {
-    this.#wss = new WebSocketServer(
+    this.wss = new WebSocketServer(
       {
         host: host,
         port: port,
@@ -47,7 +51,7 @@ export class GameSocketServer {
    * Starts the WebSocket server and sets up connection handling.
    */
   start(): void {
-    this.#wss.on("connection", (ws: Client) => {
+    this.wss.on("connection", (ws: Client) => {
       ws.id = nanoid();
       this.clients.push(ws);
 
@@ -193,7 +197,7 @@ export class GameSocketServer {
    * Adds a message to the chat log.
    * @param msg - The message to add to the chat log.
    */
-  enqueueMsg(msg: String): void {
+  enqueueMsg(msg: string): void {
     this.chatLog.push(msg);
   }
 }
