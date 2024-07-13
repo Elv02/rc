@@ -1,0 +1,40 @@
+{
+  "name": "rc-server",
+  "version": "1.0.0",
+  "description": "Backend server for Raycast game",
+  "main": "main.ts",
+  "scripts": {
+    "dev": "npx tsx main.ts --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Elv02/rc.git"
+  },
+  "type": "module",
+  "keywords": [
+    "server",
+    "websocket",
+    "raycast"
+  ],
+  "author": "Lauren 'Elv02' Hoeft",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/Elv02/rc/issues"
+  },
+  "homepage": "https://github.com/Elv02/rc#readme",
+  "dependencies": {
+    "config-ini-parser": "^1.6.1",
+    "express": "^4.19.2",
+    "nanoid": "^5.0.7",
+    "node": "^22.3.0",
+    "ts-node": "^10.9.2",
+    "ws": "^8.17.0"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2"
+  }
+}

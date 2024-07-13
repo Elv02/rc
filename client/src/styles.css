@@ -1,0 +1,48 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+#game-container {
+  position: relative;
+  width: 800px; /* Match game width */
+  height: 450px; /* Match game height */
+}
+#menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+  padding: 2rem;
+  border-radius: 1rem;
+  z-index: 10;
+}
+#menu.hidden {
+  display: none;
+}
+.menu-section {
+  margin-bottom: 2rem;
+}
+.menu-section label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: white;
+}
+.menu-section input {
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+.menu-section button {
+  padding: 1rem;
+  margin-top: 1rem;
+}
