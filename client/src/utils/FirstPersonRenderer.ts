@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import Raycaster from "../utils/Raycaster";
 import GameScene from "../scenes/GameScene";
 import { Point, Vector } from "../types/Geometry";

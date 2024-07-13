@@ -1,116 +1,197 @@
-# Multiplayer Treasure Hunting Game (Title WIP)
+<!-- README Built using the "Best README Template": See: https://github.com/othneildrew/Best-README-Template/-->
 
-## Overview
+<a id="readme-top"></a>
 
-Play online with your friends and compete to collect the most treasure in the time provided! Dive into a retro '90s shooter' inspired environment with modern multiplayer capabilities.
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
 
-### Problem
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <h3 align="center">Treasure Hunters</h3>
 
-We all love games, especially those we can enjoy with our friends. I've always been a fan of the nostalgic '90s shooter' vibe and wanted to create something utilizing raycasting, and to add on top the challenge of multiplayer to cap it off.
+  <p align="center">
+    A treasure collecting game where you compete to aquire the biggest treasure hoard!
+    <br />
+    <a href="https://github.com/elv02/rc"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/elv02/rc">View Demo</a>
+    ·
+    <a href="https://github.com/elv02/rc/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    ·
+    <a href="https://github.com/elv02/rc/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  </p>
+</div>
 
-### User Profile
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
-- Gamers who:
-  - Enjoy playing online games
-  - Have friends, acquaintances, or rivals to compete with
+<!-- ABOUT THE PROJECT -->
 
-### Features
+## About The Project
 
-- **Connectivity:**
-  - As a player, I want to be able to connect to a server to play online.
-  - As a player, I want to be able to enter the IP of the server so I can play with my friends.
-  - As a player, I want to be an active player on the server I connect to.
+[![Treasure Hunter Screen Shot][images/Headshot.png]](https://github.com/elv02/rc)
 
-- **Gameplay:**
-  - As an active player, I want to explore the level to look for treasures.
-  - As an active player, I want to be able to pick up/interact with treasure.
-  - As an active player, I want my score to be tracked as I pick up treasures so I can lord it over my rivals.
-  - As an active player, I want to be able to disconnect from the game session and return to the main menu.
+Treasure Hunters is a retro-inspired online experience where you and your friends can compete to collect the most treasure. Set in a '90s shooter-style environment, the game combines classic aesthetics with modern multiplayer features.
 
-## Implementation
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Tech Stack
+### Built With
 
-- **WS:** A Server/Client node package for Web Sockets
-- **Phaser:** Client-side library for game development
-- **Express:** Server-side library for serving assets
-- **MySQL (Nice-to-have):** For backend high score tracking
+- [![Express][Express.js]][Express-url]
+- [![Phaser][Phaser.js]][Phaser-url]
+- [![WebSocketServer]][WSS-url]
 
-### APIs
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-- No external APIs are used for this project.
+<!-- GETTING STARTED -->
 
-### Scenemap
+## Getting Started
 
-The Phaser client will be broken into specific 'scenes' (analogous to pages):
+To get a local copy up and running follow these simple example steps.
 
-- **Boot:**
-  - Quick loading of assets for the load screen
-- **Preload:**
-  - Load game assets
-- **MainMenu:**
-  - Provides player options (connect, options if applicable)
-- **Game:**
-  - The main scene of the application, handling game rendering and input once a connection is established
+### Prerequisites
 
-### Mockups
+This is an example of how to list things you need to use the software and how to install them.
 
-Provide visuals of your app's screens. You can use tools like Figma or pictures of hand-drawn sketches.
+- npm
+  ```sh
+  npm install npm@latest -g
+  ```
 
-### Data (Nice-to-Have)
+### Installation
 
-For high score tracking in a backend database:
+1. Clone the repo
+   ```sh
+   git clone https://github.com/elv02/rc.git
+   ```
+2. Run the install command for the client and server (note: this requires NPM)
+   ```sh
+   npm install
+   ```
+3. Confirm your server settings in `./server/config.ini`
+4. Deploy both the client and server concurrently with `npm start`:
+   ```sh
+   npm start
+   ```
 
-| Player ID | Player Name | Score | Time          |
-|-----------|-------------|-------|---------------|
-| 1         | Bob         | 115   | 1720115049    |
-| 2         | John        | 90    | 1720115049    |
-| 3         | Alice       | 145   | 1720115049    |
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Endpoints
+<!-- USAGE EXAMPLES -->
 
-#### Websocket
-Websocket messages will all land on the root of the server (e.g., ws://192.168.0.1). The deciding factor will be the attached message type field.
+## Usage
 
-- **Type: JOIN**
-  - Request to join a game server
-  - Must be the _first_ message sent by the client on a new connection
-  - Server will respond affirmatively to indicate if the client can continue
+Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
 
-- **Type: MOVE**
-  - Inform the server of movement by the player
+_For more examples, please refer to the [Documentation](https://example.com)_
 
-- **Type: LEAVE**
-  - Inform the server when a player wishes to disconnect
-  - Ensures a clean disconnect instead of allowing the connection to timeout
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-- **Type: UPDATE**
-  - Issued by the server to the clients, includes an update of the new game state (items, player scores, and player positions)
+<!-- CONTRIBUTING -->
 
-### Auth
+## Contributing
 
-- Not applicable for this project.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-## Roadmap
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
 
-- Setup project repository
-- Create boilerplate for Phaser client 
-- Create boilerplate for Express server
-- Feature: Implement basic WebSocket server-client communication
-- Feature: Add asset loading to Preload scene
-- Feature: Add connect option to the MainMenu scene
-- Feature: Basic level layout
-- Feature: Player movement
-- Feature: Render player view ("first person")
-- Feature: Implement treasure pickup and player scoring
-- Feature: Track and display individual player scores in game
-- Feature: Add a disconnect button for players to return to the main menu
-- Conduct playtesting
-- Fix bugs
-- Prepare for demo presentation
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## Nice-to-haves
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-- High score tracking in a MySQL database
-- Additional levels or environments
-- Power-ups and special items
+<!-- LICENSE -->
+
+## License
+
+Distributed under the GPL 3.0 License. See `LICENSE` for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- CONTACT -->
+
+## Contact
+
+Lauren Hoeft - laurenhoeft42@gmail.com
+
+Project Link: [https://github.com/elv02/rc](https://github.com/elv02/rc)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- ACKNOWLEDGMENTS -->
+
+## Acknowledgments
+
+- [Lodev's Raycasting Tutorial](https://lodev.org/cgtutor/raycasting.html)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
+[contributors-shield]: https://img.shields.io/github/contributors/elv02/rc.svg?style=for-the-badge
+[contributors-url]: https://github.com/elv02/rc/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/elv02/rc.svg?style=for-the-badge
+[forks-url]: https://github.com/elv02/rc/network/members
+[stars-shield]: https://img.shields.io/github/stars/elv02/rc.svg?style=for-the-badge
+[stars-url]: https://github.com/elv02/rc/stargazers
+[issues-shield]: https://img.shields.io/github/issues/elv02/rc.svg?style=for-the-badge
+[issues-url]: https://github.com/elv02/rc/issues
+[license-shield]: https://img.shields.io/github/license/elv02/rc.svg?style=for-the-badge
+[license-url]: https://github.com/elv02/rc/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/lauren-hoeft
+[product-screenshot]: images/screenshot.png
+[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
+[Next-url]: https://nextjs.org/
+[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
+[React-url]: https://reactjs.org/
+[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
+[Vue-url]: https://vuejs.org/
+[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
+[Angular-url]: https://angular.io/
+[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
+[Svelte-url]: https://svelte.dev/
+[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
+[Laravel-url]: https://laravel.com
+[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
+[Bootstrap-url]: https://getbootstrap.com
+[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
+[JQuery-url]: https://jquery.com
+[Express-url]: https://expressjs.com/
+[Express.js]: https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB
+[Phaser-url]: https://phaser.io/
+[Phaser.js]: https://cdn.phaser.io/images/logo/phaser-pixel-small-flat.png
+[WSS-url]: https://github.com/websockets/ws

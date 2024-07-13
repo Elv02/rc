@@ -1,9 +1,15 @@
+interface Pickup {
+  x: number;
+  y: number;
+  type: number;
+}
+
 /**
  * Interface representing the level data.
  */
 export interface LevelData {
   walls: number[][];
-  pickups: { x: number; y: number; type: number }[];
+  pickups: Pickup[];
   spawnPoints: { x: number; y: number }[];
   players: { x: number; y: number; name: string }[];
 }
@@ -42,10 +48,11 @@ export class LevelGenerator {
    */
   generateLevel(): LevelData {
     // Initialize the level with walls
-    const level = Array.from({ length: this.height }, () =>
+    const level = Array.from({ length: this.height }).map(() =>
       Array(this.width).fill(this.randomWallTexture())
     );
-    const pickups: { x: number; y: number }[] = [];
+
+    const pickups: { x: number; y: number, type: number }[] = [];
     const spawnPoints: { x: number; y: number }[] = [];
     const players: { x: number; y: number; name: string }[] = [];
 
@@ -198,7 +205,15 @@ export class LevelGenerator {
       });
     }
 
-    return { walls: level, pickups, spawnPoints, players };
+    return {
+      walls: level,
+      pickups: pickups.map((pickup) => ({
+        ...pickup,
+        type: Math.floor(Math.random() * 40), // Ensure each pickup includes a type property
+      })),
+      spawnPoints,
+      players,
+    };
   }
 
   /**

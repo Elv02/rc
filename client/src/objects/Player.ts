@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import Raycaster from "../utils/Raycaster";
 import FirstPersonRenderer from "../utils/FirstPersonRenderer";
 import { RaycastHit } from "../types/RaycastStructs";
