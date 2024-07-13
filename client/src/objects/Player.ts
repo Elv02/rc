@@ -21,6 +21,9 @@ class Player {
   private level: number[][];
   private tileSize: number;
   private collisionOffset: number;
+  private score: number = 0;
+  public width: number;
+  public height: number;
 
   /**
    * Creates an instance of Player.
@@ -45,6 +48,8 @@ class Player {
     this.viewDistance = 10000; // Player view cull distance
     this.viewAngle = 60; // Angle of the view cone in degrees
     this.collisionOffset = 25; // Offset to keep the player away from walls
+    this.width = 86;
+    this.height = 112;
 
     this.level = level;
     this.tileSize = tileSize;
@@ -203,6 +208,14 @@ class Player {
   setPosition(x: number, y: number): void {
     this.position.x = x;
     this.position.y = y;
+  }  
+  
+  public addScore(points: number): void {
+    this.score += points;
+  }
+
+  public getScore(): number {
+    return this.score;
   }
 
   /**

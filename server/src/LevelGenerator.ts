@@ -178,7 +178,7 @@ export class LevelGenerator {
     }
 
     // Generate item pickups
-    const numPickups = this.numPlayers * 2;
+    const numPickups = this.numPlayers * 8;
     for (let i = 0; i < numPickups; i++) {
       let x, y;
       do {
@@ -194,7 +194,7 @@ export class LevelGenerator {
       pickups.push({
         x: x * this.tileSize + this.tileSize / 2,
         y: y * this.tileSize + this.tileSize / 2,
-        type: Math.floor(Math.random() * 5),
+        type: Math.floor(Math.random() * 40),
       });
     }
 

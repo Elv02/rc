@@ -76,6 +76,8 @@ class FirstPersonRenderer {
    * @param playerAngle - The current angle of the player.
    */
   update(playerPosition: Point, playerAngle: number): void {
+    playerAngle = this.clampAngle(playerAngle);
+
     const screenWidth = this.pixelCanvas.width;
     const screenHeight = this.pixelCanvas.height;
     const fieldOfView = this.viewAngle * (Math.PI / 180);
@@ -144,9 +146,9 @@ class FirstPersonRenderer {
             1, // Source Width
             frame.height, // Source Height
             x, // Destination X
-            (screenHeight - wallHeight) / 2,
+            (screenHeight - wallHeight) / 2, // Destination Y
             1, // Destination Width
-            wallHeight
+            wallHeight // Destination Height
           );
         }
       }
@@ -185,6 +187,8 @@ class FirstPersonRenderer {
     screenWidth: number,
     screenHeight: number
   ): { inView: boolean; screenX: number; spriteHeight: number } {
+    playerAngle = this.clampAngle(playerAngle);
+
     const dx = objectPosition.x - playerPosition.x;
     const dy = objectPosition.y - playerPosition.y;
     const distanceInWorldUnits = Math.sqrt(dx * dx + dy * dy);
@@ -204,7 +208,7 @@ class FirstPersonRenderer {
     }
 
     const angleToPlayer = Math.atan2(dy, dx);
-    let angleDifference = angleToPlayer - playerAngle;
+    let angleDifference = playerAngle - angleToPlayer;
 
     if (angleDifference > Math.PI) {
       angleDifference -= 2 * Math.PI;
@@ -220,7 +224,7 @@ class FirstPersonRenderer {
       distanceInWorldUnits < this.viewDistance
     ) {
       const screenX =
-        screenWidth / 2 + (angleDifference / fieldOfView) * screenWidth;
+        screenWidth / 2 - (angleDifference / fieldOfView) * screenWidth;
       const maxSpriteHeight = screenHeight / 3; // Max height 1/3 of screen height
 
       // Correct scaling calculation
@@ -281,14 +285,23 @@ class FirstPersonRenderer {
             );
 
             // Adjust the vertical position to simulate the object sitting on the ground
-            const groundLevel = screenHeight * 0.75; // Base ground level near the bottom of the screen
+            const groundLevel = screenHeight * 0.9; // Base ground level near the bottom of the screen
+            const maxHeightAdjustment = groundLevel - screenHeight / 2;
+            const heightAdjustmentFactor =
+              distanceInWorldUnits / this.viewDistance;
             const heightAdjustment =
-              (distanceInWorldUnits / this.viewDistance) * (screenHeight / 2);
+              maxHeightAdjustment * heightAdjustmentFactor;
             const verticalOffset = groundLevel - heightAdjustment;
+
+            // Ensure the vertical offset does not exceed halfway mark
+            const clampedVerticalOffset = Math.min(
+              verticalOffset,
+              screenHeight / 2
+            );
 
             // Draw the scaled image
             this.pixelContext.save(); // Save the context state
-            this.pixelContext.translate(screenX, verticalOffset); // Move to the position
+            this.pixelContext.translate(screenX, clampedVerticalOffset); // Move to the position
             this.pixelContext.scale(
               scaleWidth / sprite.width,
               scaleHeight / sprite.height
@@ -363,6 +376,21 @@ class FirstPersonRenderer {
       this.phaserTexture.destroy();
     }
     this.phaserTexture = null;
+  }
+
+  /**
+   * Clamps the angle to the range -π to π.
+   * @param angle - The angle to be clamped.
+   * @returns The clamped angle.
+   */
+  clampAngle(angle: number): number {
+    angle = angle % (2 * Math.PI);
+    if (angle > Math.PI) {
+      angle -= 2 * Math.PI;
+    } else if (angle < -Math.PI) {
+      angle += 2 * Math.PI;
+    }
+    return angle;
   }
 }
 
