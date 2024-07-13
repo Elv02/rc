@@ -24,7 +24,7 @@ module.exports = {
     proxy: [
       {
         context: ["/game-ws"],
-        target: 'ws://127.0.0.1:64209',
+        target: 'ws://127.0.0.1:8123',
         ws: true,
       },
       {
@@ -35,7 +35,7 @@ module.exports = {
     ],
     headers: {
       "Content-Security-Policy":
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:64209;",
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:8123;",
     },
     setupMiddlewares: (middlewares, devServer) => {
       if (!devServer) {
@@ -51,7 +51,7 @@ module.exports = {
               scriptSrc: ["'self'", "'unsafe-inline'"],
               styleSrc: ["'self'", "'unsafe-inline'"],
               imgSrc: ["'self'", "data:", "blob:"],
-              connectSrc: ["'self'", "ws://127.0.0.1:64209"],
+              connectSrc: ["'self'", "ws://127.0.0.1:8123"],
             },
           },
         })

@@ -22,10 +22,13 @@ class GameScene extends Phaser.Scene {
   private otherPlayers: { [key: string]: Player } = {};
   private collectibles: { x: number; y: number; type: number }[] = [];
   private players: { x: number; y: number; name: string }[] = [];
+  private scoreText!: Phaser.GameObjects.Text;
+  private messageText!: Phaser.GameObjects.Text;
+  private isLevelDataReady: boolean = false; // Flag to check if level data is ready
+  private spawnData: { x: number; y: number } | null = null; // Temporary storage for spawn data
 
   constructor() {
     super({ key: "GameScene" });
-
     this.tileSize = 128;
     this.topDownView = true;
   }
@@ -34,7 +37,7 @@ class GameScene extends Phaser.Scene {
    * Preloads assets for the game scene.
    */
   preload(): void {
-    // Preload assets handled in PreloadScene
+    // Assets are preloaded in PreloadScene
   }
 
   /**
@@ -52,14 +55,23 @@ class GameScene extends Phaser.Scene {
   create(): void {
     this.cursors = this.input.keyboard!.createCursorKeys();
 
-    this.input.keyboard?.on("keydown-X", () => {
-      console.log("Action!");
-      this.sendActionMessage();
-    });
-
     this.input.keyboard?.on("keydown-ESC", () => {
       this.leaveGame();
     });
+
+    this.scoreText = this.add
+      .text(16, 16, "Score: 0", {
+        fontSize: "32px",
+        color: "#fff",
+      })
+      .setDepth(100);
+
+    this.messageText = this.add
+      .text(16, 50, "", {
+        fontSize: "24px",
+        color: "#fff",
+      })
+      .setDepth(100);
   }
 
   /**
@@ -71,6 +83,7 @@ class GameScene extends Phaser.Scene {
     if (this.player) {
       this.player.update(this.cursors, delta);
       this.sendPlayerPosition();
+      this.checkPickups();
     }
   }
 
@@ -81,18 +94,21 @@ class GameScene extends Phaser.Scene {
     if (this.socket) {
       this.socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
+        console.log("WebSocket message received:", message);
+
         switch (message.type) {
           case "playerId":
             this.playerId = message.data;
+            console.log("Received playerId:", this.playerId);
             break;
           case "level":
             this.handleLevelData(message.data);
             break;
           case "spawn":
-            this.initializePlayer(message.data);
+            this.handleSpawnData(message.data);
             break;
           case "players":
-            this.updatePlayers(message.data);
+            this.setPlayers(message.data);
             break;
           case "collectibles":
             this.setCollectibles(message.data);
@@ -100,7 +116,6 @@ class GameScene extends Phaser.Scene {
           default:
             console.warn("Unknown message type:", message.type);
         }
-        console.log("Message from server:", event.data);
       };
 
       this.socket.onclose = () => {
@@ -120,10 +135,7 @@ class GameScene extends Phaser.Scene {
   handleLevelData(data: LevelData): void {
     this.level = data.walls;
 
-    let players = data.players || [];
-
-    // Create other players from level data
-    players.forEach((playerData) => {
+    data.players.forEach((playerData) => {
       if (playerData.name !== this.playerId) {
         this.otherPlayers[playerData.name] = new Player(
           this,
@@ -135,8 +147,27 @@ class GameScene extends Phaser.Scene {
       }
     });
 
-    // Set collectibles for the renderer
     this.setCollectibles(data.pickups);
+    this.isLevelDataReady = true;
+    console.log("Level data processed. Level:", this.level);
+
+    // Initialize player if spawn data is already received
+    if (this.spawnData) {
+      this.initializePlayer(this.spawnData);
+      this.spawnData = null;
+    }
+  }
+
+  /**
+   * Handles the received spawn data.
+   * @param data - The spawn point data.
+   */
+  handleSpawnData(data: { x: number; y: number }): void {
+    if (this.isLevelDataReady) {
+      this.initializePlayer(data);
+    } else {
+      this.spawnData = data;
+    }
   }
 
   /**
@@ -146,23 +177,6 @@ class GameScene extends Phaser.Scene {
   initializePlayer(data: { x: number; y: number }): void {
     if (!this.player) {
       this.player = new Player(this, data.x, data.y, this.level, this.tileSize);
-      console.log("Player initialized:", this.player); // Debugging info
-    }
-  }
-
-  /**
-   * Sends an action message to the server.
-   */
-  sendActionMessage(): void {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(
-        JSON.stringify({ type: "action", data: "Hello from GameScene!" })
-      );
-    } else {
-      console.warn(
-        "WebSocket is not open. Current state:",
-        this.socket?.readyState
-      );
     }
   }
 
@@ -183,28 +197,6 @@ class GameScene extends Phaser.Scene {
         })
       );
     }
-  }
-
-  /**
-   * Updates the positions of other players in the game.
-   * @param players - The object containing player IDs and their positions.
-   */
-  updatePlayers(players: { [key: string]: { x: number; y: number } }): void {
-    Object.keys(players).forEach((id) => {
-      if (id !== this.playerId) {
-        if (!this.otherPlayers[id]) {
-          this.otherPlayers[id] = new Player(
-            this,
-            players[id].x,
-            players[id].y,
-            this.level,
-            this.tileSize
-          );
-        } else {
-          this.otherPlayers[id].setPosition(players[id].x, players[id].y);
-        }
-      }
-    });
   }
 
   /**
@@ -242,6 +234,68 @@ class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Checks if the player has picked up any collectibles.
+   */
+  private checkPickups(): void {
+    const playerPos = this.player.getPosition();
+    const playerRect = new Phaser.Geom.Rectangle(
+      playerPos.x,
+      playerPos.y,
+      this.player.width,
+      this.player.height
+    );
+
+    const pickups = this.getCollectibles();
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      const pickup = pickups[i];
+      const pickupRect = new Phaser.Geom.Rectangle(
+        pickup.x,
+        pickup.y,
+        this.tileSize,
+        this.tileSize
+      );
+
+      if (Phaser.Geom.Intersects.RectangleToRectangle(playerRect, pickupRect)) {
+        // Pickup collected
+        this.player.addScore(pickup.type * 100);
+        this.updateScoreText();
+        this.showPickupMessage(pickup.type * 100);
+
+        // Notify the server of the collected pickup
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+          this.socket.send(
+            JSON.stringify({
+              type: "collect",
+              data: { x: pickup.x, y: pickup.y, type: pickup.type },
+            })
+          );
+        }
+
+        // Remove the pickup from the array
+        pickups.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Updates the score display.
+   */
+  private updateScoreText(): void {
+    this.scoreText.setText(`Score: ${this.player.getScore()}`);
+  }
+
+  /**
+   * Displays a message when a pickup is collected.
+   * @param points - The points awarded for the pickup.
+   */
+  private showPickupMessage(points: number): void {
+    this.messageText.setText(`You found a ${points} pt gem!`);
+    this.time.delayedCall(2000, () => {
+      this.messageText.setText("");
+    });
+  }
+
+  /**
    * Leaves the game properly by disconnecting the player and closing the WebSocket connection.
    */
   leaveGame(): void {
@@ -262,6 +316,7 @@ class GameScene extends Phaser.Scene {
     if (this.socket) {
       this.socket.close();
       this.socket = null;
+      console.log("WebSocket connection closed.");
     }
 
     // Clear level and other game data
@@ -284,6 +339,8 @@ class GameScene extends Phaser.Scene {
     if (this.socket) {
       this.socket.close();
     }
+
+    console.log("GameScene shutdown.");
   }
 }
 

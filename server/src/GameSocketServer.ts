@@ -110,7 +110,7 @@ export class GameSocketServer {
         // TODO: Handle player movement
         break;
       case "collect":
-        // TODO: Handle pickup collection
+        this.handleCollect(ws, msgObj.data);
         break;
       default:
         console.error(
@@ -119,6 +119,47 @@ export class GameSocketServer {
           msgObj.data
         );
     }
+  }
+
+  /**
+   * Handle a player informing us of item collection
+   * @param ws - The client session which informed us of the pickup
+   * @param data - The collectible which was picked up
+   */
+  handleCollect(
+    ws: Client,
+    data: { x: number; y: number; type: number }
+  ): void {
+    console.log(
+      `Player ${ws.id} collected a pickup at (${data.x}, ${data.y}) of type ${data.type}`
+    );
+
+    if (this.currentLevel) {
+      // Remove the collected pickup from the level data
+      this.currentLevel.pickups = this.currentLevel.pickups.filter(
+        (pickup) =>
+          !(
+            pickup.x === data.x &&
+            pickup.y === data.y &&
+            pickup.type === data.type
+          )
+      );
+
+      // Notify all clients about the updated collectibles
+      this.broadcast({ type: "collectibles", data: this.currentLevel.pickups });
+    }
+  }
+
+  /**
+   * Broadcasts a message to all connected clients.
+   * @param message - The message to broadcast.
+   */
+  broadcast(message: MessageObject): void {
+    this.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
   }
 
   /**
