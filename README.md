@@ -58,7 +58,7 @@
 
 ## About The Project
 
-[![Treasure Hunter Screen Shot][images/Headshot.png]](https://github.com/elv02/rc)
+[Headshot](./images/Headshot.png)
 
 Treasure Hunters is a retro-inspired online experience where you and your friends can compete to collect the most treasure. Set in a '90s shooter-style environment, the game combines classic aesthetics with modern multiplayer features.
 
@@ -68,7 +68,7 @@ Treasure Hunters is a retro-inspired online experience where you and your friend
 
 - [![Express][Express.js]][Express-url]
 - [![Phaser][Phaser.js]][Phaser-url]
-- [![WebSocketServer]][WSS-url]
+- ![Web Sockets][WSS-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
