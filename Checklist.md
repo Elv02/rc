@@ -7,7 +7,11 @@ The goal of this document is to provide a detailed aid/guide for testing/grading
 
 ### Deployment Instructions for Test
 
+By default the backend server will deploy in 127.0.0.1 and port 8123 for the Websocket. It is recommended not to change this.
+If it is required to change (i.e. the port is in use) you will need to update the webpack config file in the client folder.
+Perform a find-and-replace on the default URL `ws://127.0.0.1:8123`, ensuring that you don't change the protocol (ws).
 
+The asset backend is served on port 8081 and is non-configurable due to time constraints and technical challenges.
 
 ### Features
 
@@ -19,44 +23,3 @@ The goal of this document is to provide a detailed aid/guide for testing/grading
 | As an active player, I want to explore<br>the level to look for treasures.                                            | COMPLETED  | Once you've connected, use the arrow keys to navigate the<br>level and confirm you can see Treasure sprites.                                              |                                                                                                                                                                                                                                              |
 | As an active player, I want my score to<br>be tracked as I pick up treasures so I<br>can boast about it to my rivals. | COMPLETED  | Scoring is actively tracked, and the current player<br>score can be seen in the corner of the viewport.<br>This total updates as treasures are collected. |                                                                                                                                                                                                                                              |
 | As an active player, I want to be able<br>to disconnect from the game session and<br>return to the main menu.         | COMPLETED  | While in game, hit ESC to return to the main menu.                                                                                                        |                                                                                                                                                                                                                                              |
-
-## Implementation
-
-### Tech Stack
-
-- **WS:** A Server/Client node package for Web Sockets
-- **Phaser:** Client-side library for game development
-- **Express:** Server-side library for serving assets
-
-### Scenemap
-
-The Phaser client will be broken into specific 'scenes' (analogous to pages):
-
-- **Boot:**
-  - Quick loading of assets for the load screen
-- **Preload:**
-  - Load game assets
-- **MainMenu:**
-  - Provides player options (connect, options if applicable)
-- **Game:**
-  - The main scene of the application, handling game rendering and input once a connection is established
-
-### Endpoints
-
-#### Websocket
-Websocket messages will all land on the root of the server (e.g., ws://192.168.0.1). The deciding factor will be the attached message type field.
-
-- **Type: JOIN**
-  - Request to join a game server
-  - Must be the _first_ message sent by the client on a new connection
-  - Server will respond affirmatively to indicate if the client can continue
-
-- **Type: MOVE**
-  - Inform the server of movement by the player
-
-- **Type: LEAVE**
-  - Inform the server when a player wishes to disconnect
-  - Ensures a clean disconnect instead of allowing the connection to timeout
-
-- **Type: UPDATE**
-  - Issued by the server to the clients, includes an update of the new game state (items, player scores, and player positions)

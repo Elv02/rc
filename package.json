@@ -4,9 +4,11 @@
   "description": "A raycasted multiplayer first person game written with Typescript!",
   "main": "main.js",
   "scripts": {
-    "install": "npm i && cd ./client && npm install && cd .. && cd ./server && npm install",
+    "setup": "npm i && cd ./client && npm install && cd ../server && npm install",
     "start": "concurrently \"npm start --prefix client\" \"npm start --prefix server\"",
-    "doc": "npx typedoc ./client/src/index.ts ./server/main.ts --out ./docs"
+    "typedoc:client": "npx typedoc --tsconfig ./client/tsconfig.json ./client/src/index.ts --out ./docs/client --readme ./README.md",
+    "typedoc:server": "npx typedoc --tsconfig ./server/tsconfig.json ./server/main.ts --out ./docs/server --readme ./README.md",
+    "typedoc:all": "concurrently \"npm run typedoc:client\" \"npm run typedoc:server\""
   },
   "repository": {
     "type": "git",

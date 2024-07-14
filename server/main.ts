@@ -8,6 +8,8 @@ import { GameSocketServer } from "./src/GameSocketServer";
 const __filename = path.resolve();
 const __dirname = path.dirname(__filename);
 
+let GSS: GameSocketServer;
+
 /**
  * Main function to start the server and initialize configurations.
  */
@@ -46,7 +48,7 @@ function myMain() {
     });
 
     // Create and start the GameSocketServer
-    const GSS = new GameSocketServer({ host: IP, port: PORT });
+    GSS = new GameSocketServer({ host: IP, port: PORT });
     GSS.start();
   });
 }
@@ -60,4 +62,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
 }
 
-export { server }; // Exporting server for TypeDoc to recognize the module
+export { GSS }; // Exporting server for TypeDoc to recognize the module
